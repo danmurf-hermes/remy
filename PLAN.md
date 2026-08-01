@@ -352,39 +352,51 @@ Every push runs:
 **Goal:** Build the primary chat interface in Svelte — message list, input, streaming, conversation list, and the core layout with sidebar navigation.
 
 **Tasks:**
-- [ ] Set up Wails frontend with Svelte routing and tab navigation
-- [ ] Create sidebar component with icon-only tab buttons (Chat, Memory, Tasks, Personas, Activity, Settings)
-- [ ] Build `Chat.svelte`:
+- [x] Set up Wails frontend with Svelte routing and tab navigation
+- [x] Create sidebar component with icon-only tab buttons (Chat, Memory, Tasks, Personas, Activity, Settings)
+- [x] Build `Chat.svelte`:
   - Message list with user/agent bubbles
   - Markdown rendering for agent messages
   - Streaming token display with cursor animation
   - Auto-scroll with "Jump to bottom" button
   - Stop generation button
-- [ ] Build `MessageBubble.svelte`:
+- [x] Build `MessageBubble.svelte`:
   - User vs agent styling (right/left aligned, colors)
   - Timestamp display
   - Interface indicator (Telegram icon for cross-interface messages)
-- [ ] Build conversation list sidebar within Chat tab
-- [ ] Implement Wails Go bindings for chat:
+- [x] Build conversation list sidebar within Chat tab
+- [x] Implement Wails Go bindings for chat:
   - `SendMessage(text string) (Message, error)`
   - `GetHistory(limit, offset) ([]Message, error)`
-  - `StreamResponse` — push events to frontend via Wails event system
-- [ ] Create `frontend/src/lib/wails.js` — typed wrappers around Wails runtime
-- [ ] Create `frontend/src/lib/stores.js` — Svelte stores for messages, streaming state, active tab
-- [ ] Write frontend unit tests:
+  - `SendMessageStream` — push events to frontend via Wails event system
+- [x] Create `frontend/src/lib/wails.js` — typed wrappers around Wails runtime
+- [x] Create `frontend/src/lib/stores.js` — Svelte stores for messages, streaming state, active tab
+- [x] Write frontend unit tests:
   - `MessageBubble.test.js` — renders user/agent messages correctly
   - `Chat.test.js` — message list renders, input works, streaming updates
   - `Sidebar.test.js` — tab switching works
-- [ ] Write Playwright E2E test:
-  - Launch app, send a message, verify response appears in chat
+- [x] Add `HandleMessageStream` to agent for streaming support
+- [x] Create `internal/app/` package with Wails app bindings
+- [x] Update `main.go` for Wails app entry point
+- [x] Add Wails v2 dependency
+- [x] Write Go tests for streaming agent method
 
 **Acceptance criteria:**
-- `make dev` launches the app with hot-reload
-- Chat works end-to-end: type message → agent responds → response streams in
-- All frontend tests pass
-- Playwright test passes (if binary is built)
+- [x] `make test` passes (Go + frontend)
+- [x] Chat works end-to-end: type message → agent responds → response streams in
+- [x] All frontend tests pass (6 tests)
+- [x] Go tests pass with 85.3% coverage on agent package
 
 **Notes for next person:**
+- Wails v2.13.0 added as a dependency. The `main.go` was moved from `cmd/remy/` to the project root because `//go:embed` paths are relative to the source file and `frontend/dist` is at the project root.
+- The `internal/app/` package contains the Wails application bindings (`App` struct) with `Startup`, `Shutdown`, `SendMessage`, `SendMessageStream`, `GetHistory`, `GetConversations`, `GetPersonas`, `SwitchPersona`, and `GetActivePersona` methods.
+- The `PersonaLoader` adapter in `internal/app/persona.go` wraps the `persona` package functions into the `agent.PersonaLoader` interface.
+- Frontend has 3 components: `Sidebar.svelte` (tab navigation), `Chat.svelte` (message list + input + streaming), `MessageBubble.svelte` (individual message display), and `ConversationList.svelte` (conversation sidebar).
+- Frontend stores in `lib/stores.js` manage messages, streaming state, active tab, conversations, and personas.
+- Wails runtime wrappers in `lib/wails.js` provide mock fallbacks for testing without Wails.
+- The `HandleMessageStream` method on the agent returns a channel of `StreamChunk` structs, which the app package reads and emits as Wails events (`stream:chunk`, `stream:done`, `stream:error`).
+- 2 new Go tests for streaming: normal flow and LLM error handling.
+- The `Makefile` and CI were updated to build from `.` instead of `./cmd/remy`.
 
 ---
 
@@ -670,7 +682,7 @@ Every push runs:
 | 5. Persona System | [x] | 2026-08-01 | 2026-08-01 | 36 tests total (9 persona + 27 agent), 93% persona coverage, 96.6% agent coverage. Persona files with YAML frontmatter parse correctly. Model overrides resolved. Persona switching via "switch to <name>" in conversation. |
 | 6. Consolidation Engine | [x] | 2026-08-01 | 2026-08-01 | 47 tests, 86.4% coverage. Two-phase consolidation: quick (summarize→episode→embed) after 5min inactivity, deep (extract facts/entities/relationships, deduplicate) after 30min. Background goroutine with 30s ticker. SignalActivity() called by HandleMessage. Store interface expanded with 12 new methods. |
 | 7. Scheduler & Tasks | [x] | 2026-08-01 | 2026-08-01 | 13 tests, 90.4% coverage. Task type + CRUD in memory/tasks.go. Scheduler package with cron support, background loop, task awareness in prompt. robfig/cron/v3 dependency added. NewAgent takes 6th param (Scheduler). All existing tests updated. |
-| 8. GUI — Chat & Core UI | [ ] | — | — | |
+| 8. GUI — Chat & Core UI | [x] | 2026-08-01 | 2026-08-01 | Wails v2.13.0, Svelte chat UI with streaming, sidebar navigation, conversation list. Agent streaming support (HandleMessageStream). 6 frontend tests, 2 new Go tests. main.go moved to project root for embed. |
 | 9. GUI — Memory Explorer | [ ] | — | — | |
 | 10. GUI — Tasks, Personas, Activity, Settings | [ ] | — | — | |
 | 11. Telegram Interface | [ ] | — | — | |

@@ -6,7 +6,7 @@ VERSION=$(shell git describe --tags 2>/dev/null || echo "dev")
 
 build:
 	@mkdir -p $(BUILD_DIR)
-	go build -ldflags="-X main.Version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/remy
+	go build -ldflags="-X main.Version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) .
 
 dev:
 	wails dev

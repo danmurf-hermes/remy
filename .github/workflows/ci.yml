@@ -23,6 +23,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Frontend build
+        run: npm run build
+        working-directory: frontend
+
       - name: Lint (golangci-lint includes govet, gofmt, and all other linters)
         uses: golangci/golangci-lint-action@v7
         with:
@@ -30,10 +38,6 @@ jobs:
 
       - name: Go test
         run: go test ./internal/... -cover
-
-      - name: Frontend dependencies
-        run: npm ci
-        working-directory: frontend
 
       - name: Frontend lint (ESLint)
         run: npx eslint --ext .js,.svelte src/
@@ -48,4 +52,4 @@ jobs:
         working-directory: frontend
 
       - name: Go build
-        run: go build ./cmd/remy
+        run: go build .
