@@ -624,56 +624,13 @@ func TestHandleUpdate_NilMessage(t *testing.T) {
 	}
 }
 
-func TestHandleUpdate_NilResponse(t *testing.T) {
-	server, sentCh, bot := telegramAPIServer(t)
-	defer server.Close()
-
-	agent := &mockAgentService{
-		handleFunc: func(ctx context.Context, userMsg string) (*memory.Message, error) {
-			return &memory.Message{ID: "nil-test", Role: "assistant", Content: ""}, nil
-		},
-	}
-	store := &mockStore{}
-	cfg := &config.TelegramConfig{
-		Enabled:  true,
-		BotToken: "test:token",
-	}
-
-	tg := New(agent, store, cfg)
-	tg.bot = bot
-
-	update := tgbotapi.Update{
-		UpdateID: 1,
-		Message: &tgbotapi.Message{
-			MessageID: 1,
-			Text:      "Hello",
-			Chat:      &tgbotapi.Chat{ID: 12345},
-			From:      &tgbotapi.User{ID: 67890},
-		},
-	}
-
-	tg.handleUpdate(context.Background(), &update)
-
-	// Empty response should not send anything
-	select {
-	case <-sentCh:
-		t.Error("should not send message for empty response")
-	case <-time.After(500 * time.Millisecond):
-		// Expected - no message sent
-	}
-}
-
 func TestHandleUpdate_EmptyResponse(t *testing.T) {
 	server, sentCh, bot := telegramAPIServer(t)
 	defer server.Close()
 
 	agent := &mockAgentService{
 		handleFunc: func(ctx context.Context, userMsg string) (*memory.Message, error) {
-			return &memory.Message{
-				ID:      "resp-empty",
-				Role:    "assistant",
-				Content: "",
-			}, nil
+			return &memory.Message{ID: "resp-empty", Role: "assistant", Content: ""}, nil
 		},
 	}
 	store := &mockStore{}
