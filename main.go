@@ -42,7 +42,39 @@ func (e wailsEmitter) Emit(event string, data any) error {
 
 func main() {
 	daemonMode := flag.Bool("daemon", false, "Run in daemon mode (no GUI, Telegram only)")
+	showHelp := flag.Bool("help", false, "Show this help message")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `Remy — Personal AI Assistant
+
+Usage:
+  remy                    Start the desktop GUI
+  remy init               Initialize Remy configuration
+  remy --daemon           Run in daemon mode (Telegram + scheduler, no GUI)
+  remy --help             Show this help message
+
+Flags:
+  --daemon    Run in daemon mode (no GUI, Telegram only)
+  --help      Show this help message
+
+Commands:
+  init        Create ~/.remy/ directory, default config, and default persona
+
+Documentation:
+  https://github.com/danmurf/remy#readme
+`)
+	}
 	flag.Parse()
+
+	if *showHelp {
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	// Handle "init" subcommand
+	if flag.NArg() > 0 && flag.Arg(0) == "init" {
+		runInit()
+		return
+	}
 
 	cfgPath, err := config.ConfigPath()
 	if err != nil {
@@ -163,4 +195,61 @@ func maskToken(token string) string {
 		return "***"
 	}
 	return token[:4] + "..." + token[len(token)-4:]
+}
+
+// runInit initializes the Remy configuration directory.
+// This is a placeholder — the full implementation is in Stage 12.
+func runInit() {
+	fmt.Println("Remy init — setting up your configuration...")
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("Error getting home directory: %v", err)
+	}
+
+	remyDir := filepath.Join(home, ".remy")
+	personaDir := filepath.Join(remyDir, "personas")
+
+	// Create directories
+	for _, dir := range []string{remyDir, personaDir} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			log.Fatalf("Error creating directory %s: %v", dir, err)
+		}
+	}
+
+	// Create default config if it doesn't exist
+	cfgPath := filepath.Join(remyDir, "config.json")
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		defaultCfg := config.DefaultConfig()
+		if err := config.SaveConfig(cfgPath, defaultCfg); err != nil {
+			log.Fatalf("Error saving default config: %v", err)
+		}
+		fmt.Println("  ✓ Created default config:", cfgPath)
+	} else {
+		fmt.Println("  ✓ Config already exists:", cfgPath)
+	}
+
+	// Create default persona if it doesn't exist
+	defaultPersona := filepath.Join(personaDir, "default.md")
+	if _, err := os.Stat(defaultPersona); os.IsNotExist(err) {
+		content := `---
+name: default
+---
+
+You are Remy, a personal AI assistant. You are helpful, warm, and conversational. You remember past conversations and use that context to provide better responses. You can help with questions, tasks, reminders, and general conversation.
+`
+		if err := os.WriteFile(defaultPersona, []byte(content), 0644); err != nil {
+			log.Fatalf("Error creating default persona: %v", err)
+		}
+		fmt.Println("  ✓ Created default persona:", defaultPersona)
+	} else {
+		fmt.Println("  ✓ Default persona already exists:", defaultPersona)
+	}
+
+	fmt.Println()
+	fmt.Println("Remy is ready! Next steps:")
+	fmt.Println("  1. Make sure Ollama is running with a chat model (e.g., llama3.1:8b)")
+	fmt.Println("  2. Make sure nomic-embed-text is installed for memory support")
+	fmt.Println("  3. Run 'remy' to start the desktop GUI")
+	fmt.Println("  4. Run 'remy --daemon' for Telegram-only mode")
 }

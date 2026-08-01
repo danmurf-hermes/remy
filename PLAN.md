@@ -662,22 +662,22 @@ Every push runs:
 **Goal:** Write comprehensive documentation for users and contributors.
 
 **Tasks:**
-- [ ] Write `README.md`:
+- [x] Write `README.md`:
   - What is Remy?
   - Quick start (install, init, chat)
   - Features overview
   - Screenshots
   - Links to detailed docs
-- [ ] Write `CONTRIBUTING.md`:
+- [x] Write `CONTRIBUTING.md`:
   - How to set up the dev environment
   - How to run tests
   - How to build and release
   - Code style guide (reference ARCHITECTURE.md §11)
   - How to submit PRs
-- [ ] Write `docs/telegram.md` — how to set up Telegram bot
-- [ ] Write `docs/personas.md` — how to create and customize personas
-- [ ] Write `docs/memory.md` — how memory works (for curious users)
-- [ ] Add help text to CLI (`remy --help`)
+- [x] Write `docs/telegram.md` — how to set up Telegram bot
+- [x] Write `docs/personas.md` — how to create and customize personas
+- [x] Write `docs/memory.md` — how memory works (for curious users)
+- [x] Add help text to CLI (`remy --help`)
 
 **Acceptance criteria:**
 - README is clear and complete
@@ -686,6 +686,11 @@ Every push runs:
 - Documentation is consistent with the actual behavior
 
 **Notes for next person:**
+- README.md, CONTRIBUTING.md, and docs/ (telegram.md, personas.md, memory.md) all written
+- CLI help text added to main.go with custom flag.Usage and --help flag
+- runInit() function added as a placeholder that creates ~/.remy/ dir, default config, and default persona
+- The init command is a basic implementation — Stage 12 will add Ollama checks and interactive setup
+- All CI checks pass (go vet, gofmt, npm test, eslint, prettier)
 
 ---
 
@@ -717,4 +722,4 @@ Every push runs:
 | 12. `remy init` & First-Run | [ ] | — | — | |
 | 13. Polish & Edge Cases | [ ] | — | — | |
 | 14. CI/CD & Release Pipeline | [ ] | — | — | |
-| 15. Documentation | [ ] | — | — | |
+| 15. Documentation | [x] | 2026-08-01 | 2026-08-01 | README, CONTRIBUTING, docs/ (telegram, personas, memory), CLI help text, init placeholder. All CI checks pass. |
