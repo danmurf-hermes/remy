@@ -19,6 +19,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -92,7 +93,7 @@ func main() {
 	ag := agent.NewAgent(store, llmProvider, embedder, personaLoader, sched, agentCfg)
 	sched.SetAgent(ag)
 
-	application, err := app.NewApp(cfg, store, ag)
+	application, err := app.NewApp(cfg, cfgPath, store, ag)
 	if err != nil {
 		_ = store.Close()
 		log.Fatalf("Error creating app: %v", err)
@@ -116,6 +117,9 @@ func main() {
 		OnShutdown: application.Shutdown,
 		Bind: []any{
 			application,
+		},
+		Linux: &linux.Options{
+			ProgramName: "Remy",
 		},
 	})
 

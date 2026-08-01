@@ -13,6 +13,7 @@ import (
 	"github.com/danmurf/remy/internal/config"
 	"github.com/danmurf/remy/internal/memory"
 	"github.com/danmurf/remy/internal/persona"
+	"github.com/google/uuid"
 )
 
 // Emitter defines the interface for emitting events to the frontend.
@@ -40,17 +41,19 @@ type App struct {
 	agent             AgentService
 	store             *memory.Store
 	cfg               *config.Config
+	cfgPath           string
 	emitter           Emitter
 	stopConsolidation func()
 	stopScheduler     func()
 }
 
 // NewApp creates a new App with the given dependencies.
-func NewApp(cfg *config.Config, store *memory.Store, agentSvc AgentService) (*App, error) {
+func NewApp(cfg *config.Config, cfgPath string, store *memory.Store, agentSvc AgentService) (*App, error) {
 	return &App{
-		agent: agentSvc,
-		store: store,
-		cfg:   cfg,
+		agent:   agentSvc,
+		store:   store,
+		cfg:     cfg,
+		cfgPath: cfgPath,
 	}, nil
 }
 
@@ -303,6 +306,72 @@ type RelationshipDTO struct {
 type SearchResultsDTO struct {
 	Facts    []FactDTO    `json:"facts"`
 	Episodes []EpisodeDTO `json:"episodes"`
+}
+
+// TaskDTO is a data transfer object for scheduled tasks.
+type TaskDTO struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Status    string `json:"status"`
+	TriggerAt int64  `json:"trigger_at"`
+	CronExpr  string `json:"cron_expr"`
+	Action    string `json:"action"`
+	Context   string `json:"context"`
+	CreatedAt int64  `json:"created_at"`
+	FiredAt   int64  `json:"fired_at"`
+}
+
+// ActivityEntryDTO is a data transfer object for activity log entries.
+type ActivityEntryDTO struct {
+	ID        string `json:"id"`
+	Timestamp int64  `json:"timestamp"`
+	Type      string `json:"type"`
+	Details   string `json:"details"`
+	MessageID string `json:"message_id"`
+	SessionID string `json:"session_id"`
+}
+
+// ConfigDTO mirrors the config.Config struct for frontend consumption.
+type ConfigDTO struct {
+	Providers       map[string]ProviderConfigDTO `json:"providers"`
+	DefaultProvider string                        `json:"default_provider"`
+	Memory          MemoryConfigDTO               `json:"memory"`
+	Persona         PersonaConfigDTO              `json:"persona"`
+	Interfaces      InterfacesConfigDTO           `json:"interfaces"`
+}
+
+// ProviderConfigDTO is the DTO for a provider configuration.
+type ProviderConfigDTO struct {
+	Endpoint       string         `json:"endpoint"`
+	ChatModel      string         `json:"chat_model"`
+	EmbeddingModel string         `json:"embedding_model"`
+	Parameters     map[string]any `json:"parameters,omitempty"`
+}
+
+// MemoryConfigDTO is the DTO for memory configuration.
+type MemoryConfigDTO struct {
+	DBPath                    string `json:"db_path"`
+	WorkingMemoryTurns        int    `json:"working_memory_turns"`
+	QuickConsolidationDelayMs int    `json:"quick_consolidation_delay_ms"`
+	DeepConsolidationDelayMs  int    `json:"deep_consolidation_delay_ms"`
+}
+
+// PersonaConfigDTO is the DTO for persona configuration.
+type PersonaConfigDTO struct {
+	Active    string `json:"active"`
+	Directory string `json:"directory"`
+}
+
+// InterfacesConfigDTO is the DTO for interface configuration.
+type InterfacesConfigDTO struct {
+	Telegram TelegramConfigDTO `json:"telegram"`
+}
+
+// TelegramConfigDTO is the DTO for Telegram configuration.
+type TelegramConfigDTO struct {
+	Enabled      bool     `json:"enabled"`
+	BotToken     string   `json:"bot_token"`
+	AllowedUsers []string `json:"allowed_users"`
 }
 
 // GetFacts returns all facts, optionally filtered by category.
@@ -585,6 +654,207 @@ func (a *App) fullTextSearch(query string) (SearchResultsDTO, error) {
 		}
 	}
 	return results, nil
+}
+
+// GetTasks returns tasks filtered by status. Pass empty string for all tasks.
+func (a *App) GetTasks(status string) ([]TaskDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	tasks, err := a.store.GetTasks(a.ctx, status)
+	if err != nil {
+		return nil, fmt.Errorf("getting tasks: %w", err)
+	}
+
+	dtos := make([]TaskDTO, len(tasks))
+	for i, t := range tasks {
+		dtos[i] = TaskDTO{
+			ID:        t.ID,
+			Type:      t.Type,
+			Status:    t.Status,
+			TriggerAt: t.TriggerAt,
+			CronExpr:  t.CronExpr,
+			Action:    t.Action,
+			Context:   t.Context,
+			CreatedAt: t.CreatedAt,
+			FiredAt:   t.FiredAt,
+		}
+	}
+	return dtos, nil
+}
+
+// CreateTask creates a new task (reminder or scheduled_message).
+func (a *App) CreateTask(taskType, triggerAt, cronExpr, action, context string) (*TaskDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	// Parse triggerAt as Unix timestamp in milliseconds
+	var triggerAtMs int64
+	if triggerAt != "" {
+		if _, err := fmt.Sscanf(triggerAt, "%d", &triggerAtMs); err != nil {
+			return nil, fmt.Errorf("invalid trigger_at: %w", err)
+		}
+	}
+
+	task := &memory.Task{
+		ID:        uuid.NewString(),
+		Type:      taskType,
+		Status:    "pending",
+		TriggerAt: triggerAtMs,
+		CronExpr:  cronExpr,
+		Action:    action,
+		Context:   context,
+		CreatedAt: now(),
+	}
+
+	if err := a.store.SaveTask(a.ctx, task); err != nil {
+		return nil, fmt.Errorf("saving task: %w", err)
+	}
+
+	return &TaskDTO{
+		ID:        task.ID,
+		Type:      task.Type,
+		Status:    task.Status,
+		TriggerAt: task.TriggerAt,
+		CronExpr:  task.CronExpr,
+		Action:    task.Action,
+		Context:   task.Context,
+		CreatedAt: task.CreatedAt,
+		FiredAt:   task.FiredAt,
+	}, nil
+}
+
+// CancelTask cancels a task by its ID.
+func (a *App) CancelTask(id string) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+	return a.store.CancelTask(a.ctx, id)
+}
+
+// GetActivityLog returns paginated activity log entries, optionally filtered by type.
+func (a *App) GetActivityLog(filter string, limit, offset int) ([]ActivityEntryDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	entries, err := a.store.GetActivityLog(a.ctx, filter, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("getting activity log: %w", err)
+	}
+
+	dtos := make([]ActivityEntryDTO, len(entries))
+	for i, e := range entries {
+		dtos[i] = ActivityEntryDTO{
+			ID:        e.ID,
+			Timestamp: e.Timestamp,
+			Type:      e.Type,
+			Details:   e.Details,
+			MessageID: e.MessageID,
+			SessionID: e.SessionID,
+		}
+	}
+	return dtos, nil
+}
+
+// GetConfig returns the current application configuration.
+func (a *App) GetConfig() (*ConfigDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+	return configToDTO(a.cfg), nil
+}
+
+// UpdateConfig saves a new configuration to disk and updates the in-memory config.
+func (a *App) UpdateConfig(cfg ConfigDTO) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+
+	updated := dtoToConfig(&cfg)
+	if err := config.SaveConfig(a.cfgPath, updated); err != nil {
+		return fmt.Errorf("saving config: %w", err)
+	}
+	a.cfg = updated
+	return nil
+}
+
+func configToDTO(cfg *config.Config) *ConfigDTO {
+	if cfg == nil {
+		return nil
+	}
+
+	providers := make(map[string]ProviderConfigDTO)
+	for name, p := range cfg.Providers {
+		providers[name] = ProviderConfigDTO{
+			Endpoint:       p.Endpoint,
+			ChatModel:      p.ChatModel,
+			EmbeddingModel: p.EmbeddingModel,
+			Parameters:     p.Parameters,
+		}
+	}
+
+	return &ConfigDTO{
+		Providers:       providers,
+		DefaultProvider: cfg.DefaultProvider,
+		Memory: MemoryConfigDTO{
+			DBPath:                    cfg.Memory.DBPath,
+			WorkingMemoryTurns:        cfg.Memory.WorkingMemoryTurns,
+			QuickConsolidationDelayMs: cfg.Memory.QuickConsolidationDelayMs,
+			DeepConsolidationDelayMs:  cfg.Memory.DeepConsolidationDelayMs,
+		},
+		Persona: PersonaConfigDTO{
+			Active:    cfg.Persona.Active,
+			Directory: cfg.Persona.Directory,
+		},
+		Interfaces: InterfacesConfigDTO{
+			Telegram: TelegramConfigDTO{
+				Enabled:      cfg.Interfaces.Telegram.Enabled,
+				BotToken:     cfg.Interfaces.Telegram.BotToken,
+				AllowedUsers: cfg.Interfaces.Telegram.AllowedUsers,
+			},
+		},
+	}
+}
+
+func dtoToConfig(dto *ConfigDTO) *config.Config {
+	if dto == nil {
+		return config.DefaultConfig()
+	}
+
+	providers := make(map[string]config.ProviderConfig)
+	for name, p := range dto.Providers {
+		providers[name] = config.ProviderConfig{
+			Endpoint:       p.Endpoint,
+			ChatModel:      p.ChatModel,
+			EmbeddingModel: p.EmbeddingModel,
+			Parameters:     p.Parameters,
+		}
+	}
+
+	return &config.Config{
+		Providers:       providers,
+		DefaultProvider: dto.DefaultProvider,
+		Memory: config.MemoryConfig{
+			DBPath:                    dto.Memory.DBPath,
+			WorkingMemoryTurns:        dto.Memory.WorkingMemoryTurns,
+			QuickConsolidationDelayMs: dto.Memory.QuickConsolidationDelayMs,
+			DeepConsolidationDelayMs:  dto.Memory.DeepConsolidationDelayMs,
+		},
+		Persona: config.PersonaConfig{
+			Active:    dto.Persona.Active,
+			Directory: dto.Persona.Directory,
+		},
+		Interfaces: config.InterfacesConfig{
+			Telegram: config.TelegramConfig{
+				Enabled:      dto.Interfaces.Telegram.Enabled,
+				BotToken:     dto.Interfaces.Telegram.BotToken,
+				AllowedUsers: dto.Interfaces.Telegram.AllowedUsers,
+			},
+		},
+	}
 }
 
 func factToDTO(f *memory.Fact) FactDTO {

@@ -104,7 +104,7 @@ func TestNewApp(t *testing.T) {
 	defer func() { _ = store.Close() }()
 
 	cfg := config.DefaultConfig()
-	appInst, err := app.NewApp(cfg, store, &fakeAgent{})
+	appInst, err := app.NewApp(cfg, "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestSendMessage_NotStarted(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestSendMessage_HappyPath(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestSendMessage_AgentError(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestSendMessageStream_NotStarted(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestSendMessageStream_EmitsEvents(t *testing.T) {
 	defer func() { _ = store.Close() }()
 
 	emitter := &recordingEmitter{}
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -265,7 +265,7 @@ func TestSendMessageStream_EmitsError(t *testing.T) {
 	}
 
 	emitter := &recordingEmitter{}
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestGetHistory_NotStarted(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestGetHistory_Empty(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestGetHistory_WithMessages(t *testing.T) {
 		t.Fatalf("failed to save message: %v", err)
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -375,7 +375,7 @@ func TestGetConversations_Empty(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -411,7 +411,7 @@ func TestGetConversations_WithMessages(t *testing.T) {
 		t.Fatalf("failed to save message: %v", err)
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -449,7 +449,7 @@ func TestGetConversations_PreviewTruncation(t *testing.T) {
 		t.Fatalf("failed to save message: %v", err)
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -474,7 +474,7 @@ func TestGetPersonas(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -508,7 +508,7 @@ func TestGetPersonas_Error(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -527,7 +527,7 @@ func TestSwitchPersona(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -546,7 +546,7 @@ func TestSwitchPersona_NotStarted(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -564,7 +564,7 @@ func TestGetActivePersona_Default(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, &fakeAgent{})
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -588,7 +588,7 @@ func TestGetActivePersona_Nil(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -614,7 +614,7 @@ func TestMessageToDTO_Nil(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -644,7 +644,7 @@ func TestStartup_LoadsPersona(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -668,7 +668,7 @@ func TestStartup_LoadPersonaError(t *testing.T) {
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
+	appInst, err := app.NewApp(config.DefaultConfig(), "", store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
