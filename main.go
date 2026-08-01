@@ -68,7 +68,7 @@ func main() {
 
 	application, err := app.NewApp(cfg, store, llmProvider, embedder, personaLoader, sched)
 	if err != nil {
-		store.Close()
+		_ = store.Close()
 		log.Fatalf("Error creating app: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func main() {
 		},
 	})
 
-	store.Close()
+	_ = store.Close()
 
 	if err != nil {
 		log.Fatalf("Error running application: %v", err)
