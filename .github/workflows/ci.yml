@@ -23,25 +23,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install golangci-lint
+      - name: Lint (golangci-lint includes govet, gofmt, and all other linters)
         uses: golangci/golangci-lint-action@v7
         with:
           version: latest
-
-      - name: Go vet
-        run: go vet ./...
-
-      - name: gofmt check
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "Unformatted files:"
-            echo "$unformatted"
-            exit 1
-          fi
-
-      - name: golangci-lint
-        run: golangci-lint run ./...
 
       - name: Go test
         run: go test ./internal/... -cover
