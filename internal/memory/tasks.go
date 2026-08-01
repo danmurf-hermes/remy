@@ -140,7 +140,7 @@ func (s *Store) UpdateTaskStatus(ctx context.Context, id, status string, firedAt
 	return nil
 }
 
-// CancelTask sets a task's status to "cancelled".
+// CancelTask sets a task's status to "canceled".
 func (s *Store) CancelTask(ctx context.Context, id string) error {
-	return s.UpdateTaskStatus(ctx, id, "cancelled", 0)
+	return s.UpdateTaskStatus(ctx, id, "canceled", 0)
 }

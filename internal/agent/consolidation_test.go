@@ -487,7 +487,7 @@ func TestAgent_ScheduleConsolidation(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.QuickConsolidationDelayMs = 1
@@ -513,7 +513,7 @@ func TestAgent_SignalActivity(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
@@ -529,7 +529,7 @@ func TestAgent_Consolidation_MessageIDsJSON(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	msg1ID := uuid.NewString()
 	msg2ID := uuid.NewString()
@@ -579,7 +579,7 @@ func TestAgent_Consolidation_ImportanceCalculation(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 		ID: "mock-id", Object: "chat.completion",
@@ -615,7 +615,7 @@ func TestAgent_Consolidation_EmptyFactExtraction(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	store.EXPECT().GetEpisodes(gomock.Any(), 20, 0).Return([]memory.Episode{
 		{ID: uuid.NewString(), Summary: "Casual chat about weather.", Importance: 0.3},
@@ -656,7 +656,7 @@ func TestAgent_Consolidation_ConfidenceCap(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	existingFactID := uuid.NewString()
 	store.EXPECT().GetEpisodes(gomock.Any(), 20, 0).Return([]memory.Episode{
@@ -706,7 +706,7 @@ func TestAgent_Consolidation_HandleMessageSignalsActivity(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
-			scheduler := mock_agent.NewMockScheduler(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 		if msg.ID == "" {

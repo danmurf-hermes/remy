@@ -38,9 +38,9 @@ type Agent interface {
 // Scheduler manages task creation, cancellation, and firing. It runs a
 // background loop that checks for due tasks on a configurable interval.
 type Scheduler struct {
-	store        Store
-	agent        Agent
-	stopCh       chan struct{}
+	store         Store
+	agent         Agent
+	stopCh        chan struct{}
 	checkInterval time.Duration
 }
 
@@ -85,7 +85,7 @@ func (s *Scheduler) loop(ctx context.Context) {
 		case <-s.stopCh:
 			return
 		case <-ticker.C:
-			s.fireDueTasks(ctx)
+			s.FireDueTasks(ctx)
 		}
 	}
 }
@@ -99,16 +99,12 @@ func (s *Scheduler) FireDueTasks(ctx context.Context) {
 		return
 	}
 
-	for _, task := range tasks {
-		s.fireTask(ctx, task)
+	for i := range tasks {
+		s.fireTask(ctx, &tasks[i])
 	}
 }
 
-func (s *Scheduler) fireDueTasks(ctx context.Context) {
-	s.FireDueTasks(ctx)
-}
-
-func (s *Scheduler) fireTask(ctx context.Context, task memory.Task) {
+func (s *Scheduler) fireTask(ctx context.Context, task *memory.Task) {
 	var action struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
@@ -142,7 +138,7 @@ func (s *Scheduler) fireTask(ctx context.Context, task memory.Task) {
 	}
 }
 
-func (s *Scheduler) scheduleNext(ctx context.Context, task memory.Task) {
+func (s *Scheduler) scheduleNext(ctx context.Context, task *memory.Task) {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	sched, err := parser.Parse(task.CronExpr)
 	if err != nil {

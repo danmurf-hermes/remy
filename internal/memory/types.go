@@ -73,7 +73,7 @@ type ActivityEntry struct {
 type Task struct {
 	ID        string
 	Type      string // "reminder" | "scheduled_message"
-	Status    string // "pending" | "fired" | "cancelled"
+	Status    string // "pending" | "fired" | "canceled"
 	TriggerAt int64  // Unix timestamp for one-shot
 	CronExpr  string // Cron expression for recurring (e.g., "0 8 * * *")
 	Action    string // JSON describing the action
