@@ -107,7 +107,7 @@ Documentation:
 
 	opts := &slog.HandlerOptions{Level: level}
 	var handler slog.Handler
-	if strings.ToLower(*logFormat) == "json" {
+	if strings.EqualFold(*logFormat, "json") {
 		handler = slog.NewJSONHandler(os.Stderr, opts)
 	} else {
 		handler = slog.NewTextHandler(os.Stderr, opts)
