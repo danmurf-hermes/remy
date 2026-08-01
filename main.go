@@ -81,7 +81,6 @@ Documentation:
 
 // runApp initializes all components and starts the application.
 func runApp(daemonMode bool) {
-
 	cfgPath, err := config.ConfigPath()
 	if err != nil {
 		log.Fatalf("Error determining config path: %v", err)
@@ -218,7 +217,7 @@ func runInit() {
 
 	// Create directories
 	for _, dir := range []string{remyDir, personaDir} {
-		if err := os.MkdirAll(dir, 0750); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			log.Fatalf("Error creating directory %s: %v", dir, err)
 		}
 	}
@@ -244,7 +243,7 @@ name: default
 
 You are Remy, a personal AI assistant. You are helpful, warm, and conversational. You remember past conversations and use that context to provide better responses. You can help with questions, tasks, reminders, and general conversation.
 `
-		if err := os.WriteFile(defaultPersona, []byte(content), 0600); err != nil {
+		if err := os.WriteFile(defaultPersona, []byte(content), 0o600); err != nil {
 			log.Fatalf("Error creating default persona: %v", err)
 		}
 		fmt.Println("  ✓ Created default persona:", defaultPersona)
