@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { config } from './stores.js'
+  import { config, darkMode } from './stores.js'
   import { getConfig, updateConfig } from './wails.js'
 
   let loading = true
@@ -105,6 +105,7 @@
   const settingsTabs = [
     { id: 'providers', label: 'Providers' },
     { id: 'model', label: 'Model' },
+    { id: 'appearance', label: 'Appearance' },
     { id: 'telegram', label: 'Telegram' },
     { id: 'memory', label: 'Memory' },
     { id: 'about', label: 'About' },
@@ -204,6 +205,15 @@
               class="slider"
             />
           </label>
+        </div>
+      {:else if activeTab === 'appearance'}
+        <div class="section">
+          <h3>Appearance</h3>
+          <label class="toggle-label">
+            <span>Dark Mode</span>
+            <input type="checkbox" bind:checked={$darkMode} class="toggle" />
+          </label>
+          <p class="hint">When disabled, follows system preference.</p>
         </div>
       {:else if activeTab === 'telegram'}
         <div class="section">
@@ -504,6 +514,13 @@
   .toggle {
     width: 20px;
     height: 20px;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-secondary, #6e6e73);
+    margin-top: -8px;
+    margin-bottom: 12px;
   }
 
   .data-actions {

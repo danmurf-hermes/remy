@@ -6,7 +6,7 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,7 +80,7 @@ func (t *Interface) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("getting bot info: %w", err)
 	}
-	log.Printf("Telegram bot connected: @%s (ID: %d)", user.UserName, user.ID)
+	slog.Info("Telegram bot connected", "username", user.UserName, "id", user.ID)
 
 	t.mu.Lock()
 	t.started = true
@@ -109,7 +109,7 @@ func (t *Interface) Stop() {
 	if t.bot != nil {
 		t.bot.StopReceivingUpdates()
 	}
-	log.Println("Telegram interface stopped")
+	slog.Info("Telegram interface stopped")
 }
 
 // Send sends a text message to the specified chat ID.
@@ -170,7 +170,7 @@ func (t *Interface) handleUpdate(ctx context.Context, update *tgbotapi.Update) {
 
 	// Check if user is allowed
 	if !t.isUserAllowed(userID) {
-		log.Printf("Telegram: blocked message from unauthorized user %d", userID)
+		slog.Warn("Telegram: blocked message from unauthorized user", "user_id", userID)
 		t.sendWithRetry(chatID, "Sorry, you are not authorized to use this bot.")
 		return
 	}
@@ -181,7 +181,7 @@ func (t *Interface) handleUpdate(ctx context.Context, update *tgbotapi.Update) {
 		return
 	}
 
-	log.Printf("Telegram: message from user %d in chat %d: %.50s", userID, chatID, text)
+	slog.Info("Telegram: message received", "user_id", userID, "chat_id", chatID, "text_preview", truncateText(text, 50))
 
 	// Send typing indicator
 	t.sendChatAction(chatID)
@@ -192,7 +192,7 @@ func (t *Interface) handleUpdate(ctx context.Context, update *tgbotapi.Update) {
 
 	response, err := t.agent.HandleMessage(agentCtx, text)
 	if err != nil {
-		log.Printf("Telegram: agent error for user %d: %v", userID, err)
+		slog.Error("Telegram: agent error", "user_id", userID, "error", err)
 		t.sendWithRetry(chatID, "Sorry, I encountered an error processing your message.")
 		return
 	}
@@ -243,8 +243,16 @@ func (t *Interface) sendChatAction(chatID int64) {
 func (t *Interface) sendWithRetry(chatID int64, text string) {
 	err := t.Send(chatID, text)
 	if err != nil {
-		log.Printf("Telegram: send error (retrying): %v", err)
+		slog.Warn("Telegram: send error, retrying", "chat_id", chatID, "error", err)
 		time.Sleep(500 * time.Millisecond)
 		_ = t.Send(chatID, text)
 	}
+}
+
+// truncateText truncates a string to the given max length, appending "..." if truncated.
+func truncateText(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }

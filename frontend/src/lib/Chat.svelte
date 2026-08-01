@@ -1,6 +1,6 @@
 <script>
   import { onMount, afterUpdate } from 'svelte'
-  import { messages, streamingContent, isStreaming, error } from '../lib/stores.js'
+  import { messages, streamingContent, isStreaming, addToast } from '../lib/stores.js'
   import {
     sendMessageStream,
     getHistory,
@@ -13,10 +13,15 @@
   let inputText = ''
   let messageList
   let showJumpToBottom = false
+  let inputEl
 
   onMount(async () => {
-    const history = await getHistory(50, 0)
-    messages.set(history)
+    try {
+      const history = await getHistory(50, 0)
+      messages.set(history)
+    } catch (e) {
+      addToast('Failed to load message history: ' + e.message, 'error')
+    }
 
     onStreamChunk((chunk) => {
       streamingContent.update((prev) => prev + chunk)
@@ -41,9 +46,16 @@
     })
 
     onStreamError((err) => {
-      error.set(err)
+      addToast(err, 'error')
       streamingContent.set('')
       isStreaming.set(false)
+    })
+
+    // Listen for escape to blur the input
+    window.addEventListener('escape-pressed', () => {
+      if (inputEl) {
+        inputEl.blur()
+      }
     })
   })
 
@@ -93,13 +105,14 @@
     try {
       await sendMessageStream(text)
     } catch (err) {
-      error.set(err.message || String(err))
+      addToast(err.message || String(err), 'error')
       isStreaming.set(false)
     }
   }
 
   function handleKeydown(e) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
       handleSend()
     }
   }
@@ -110,46 +123,62 @@
   }
 </script>
 
-<div class="chat">
-  <div class="message-list" bind:this={messageList} on:scroll={handleScroll}>
+<div class="chat" role="region" aria-label="Chat conversation">
+  <div
+    class="message-list"
+    bind:this={messageList}
+    on:scroll={handleScroll}
+    role="log"
+    aria-label="Messages"
+    aria-live="polite"
+  >
     {#each $messages as msg (msg.id)}
       <MessageBubble message={msg} />
     {/each}
 
     {#if $isStreaming}
-      <div class="streaming">
-        <div class="avatar">R</div>
+      <div class="streaming" role="status" aria-label="Assistant is typing">
+        <div class="avatar" aria-hidden="true">R</div>
         <div class="bubble">
-          {$streamingContent}<span class="cursor">|</span>
+          {$streamingContent}<span class="cursor" aria-hidden="true">|</span>
         </div>
       </div>
     {/if}
 
     {#if showJumpToBottom}
-      <button class="jump-btn" on:click={scrollToBottom}> ↓ Jump to bottom </button>
+      <button class="jump-btn" on:click={scrollToBottom} aria-label="Scroll to bottom of messages">
+        ↓ Jump to bottom
+      </button>
     {/if}
   </div>
 
   <div class="input-area">
-    {#if $error}
-      <div class="error-bar">{$error}</div>
-    {/if}
     <div class="input-row">
       <textarea
+        bind:this={inputEl}
         bind:value={inputText}
         on:keydown={handleKeydown}
         placeholder="Type a message..."
         disabled={$isStreaming}
         rows="1"
+        aria-label="Message input"
       ></textarea>
       {#if $isStreaming}
-        <button class="stop-btn" on:click={handleStop} title="Stop generation"> ■ </button>
+        <button
+          class="stop-btn"
+          on:click={handleStop}
+          title="Stop generation"
+          aria-label="Stop generation"
+        >
+          ■
+        </button>
       {:else}
         <button
           class="send-btn"
           on:click={handleSend}
           disabled={!inputText.trim()}
           title="Send (Cmd+Enter)"
+          aria-label="Send message"
         >
           →
         </button>
@@ -186,7 +215,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #007aff;
+    background: var(--accent);
     color: white;
     display: flex;
     align-items: center;
@@ -201,8 +230,8 @@
     border-radius: 12px;
     font-size: 14px;
     line-height: 1.5;
-    background: #f0f0f5;
-    color: #1d1d1f;
+    background: var(--card-bg);
+    color: var(--text-primary);
     border-bottom-left-radius: 4px;
     word-wrap: break-word;
   }
@@ -222,33 +251,23 @@
     bottom: 8px;
     align-self: center;
     padding: 6px 16px;
-    border: 1px solid #d0d0d5;
+    border: 1px solid var(--border-color);
     border-radius: 20px;
-    background: white;
+    background: var(--bg-primary);
     font-size: 12px;
     cursor: pointer;
-    color: #007aff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    color: var(--accent);
+    box-shadow: 0 1px 4px var(--shadow);
   }
 
   .jump-btn:hover {
-    background: #f0f0f5;
+    background: var(--hover-bg);
   }
 
   .input-area {
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border-light);
     padding: 12px 16px;
-    background: white;
-  }
-
-  .error-bar {
-    padding: 6px 12px;
-    background: #fff2f0;
-    border: 1px solid #ffccc7;
-    border-radius: 6px;
-    color: #cf1322;
-    font-size: 12px;
-    margin-bottom: 8px;
+    background: var(--bg-primary);
   }
 
   .input-row {
@@ -260,7 +279,7 @@
   textarea {
     flex: 1;
     padding: 8px 12px;
-    border: 1px solid #d0d0d5;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
@@ -268,14 +287,20 @@
     outline: none;
     line-height: 1.4;
     min-height: 36px;
+    background: var(--input-bg);
+    color: var(--text-primary);
   }
 
   textarea:focus {
-    border-color: #007aff;
+    border-color: var(--accent);
   }
 
   textarea:disabled {
-    background: #f5f5f7;
+    background: var(--bg-secondary);
+  }
+
+  textarea::placeholder {
+    color: var(--text-tertiary);
   }
 
   .send-btn,
@@ -293,25 +318,26 @@
   }
 
   .send-btn {
-    background: #007aff;
+    background: var(--accent);
     color: white;
   }
 
   .send-btn:disabled {
-    background: #d0d0d5;
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
     cursor: not-allowed;
   }
 
   .send-btn:hover:not(:disabled) {
-    background: #0056cc;
+    background: var(--accent-hover);
   }
 
   .stop-btn {
-    background: #ff3b30;
+    background: var(--danger);
     color: white;
   }
 
   .stop-btn:hover {
-    background: #d62d20;
+    background: var(--danger-hover);
   }
 </style>
