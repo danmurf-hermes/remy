@@ -2,6 +2,7 @@
   import Sidebar from './lib/Sidebar.svelte'
   import Chat from './lib/Chat.svelte'
   import ConversationList from './lib/ConversationList.svelte'
+  import MemoryExplorer from './lib/MemoryExplorer.svelte'
   import { activeTab } from './lib/stores.js'
 </script>
 
@@ -14,10 +15,7 @@
         <Chat />
       </div>
     {:else if $activeTab === 'memory'}
-      <div class="placeholder-tab">
-        <h2>Memory Explorer</h2>
-        <p>Coming soon</p>
-      </div>
+      <MemoryExplorer />
     {:else if $activeTab === 'tasks'}
       <div class="placeholder-tab">
         <h2>Tasks & Schedule</h2>

@@ -6,6 +6,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/config"
@@ -254,6 +256,369 @@ type PersonaDTO struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	IsActive    bool   `json:"is_active"`
+}
+
+// FactDTO is a data transfer object for semantic facts.
+type FactDTO struct {
+	ID         string  `json:"id"`
+	Fact       string  `json:"fact"`
+	Category   string  `json:"category"`
+	Confidence float64 `json:"confidence"`
+	Source     string  `json:"source"`
+	CreatedAt  int64   `json:"created_at"`
+	UpdatedAt  int64   `json:"updated_at"`
+}
+
+// EpisodeDTO is a data transfer object for episodic memory entries.
+type EpisodeDTO struct {
+	ID         string  `json:"id"`
+	Summary    string  `json:"summary"`
+	StartTime  int64   `json:"start_time"`
+	EndTime    int64   `json:"end_time"`
+	MessageIDs string  `json:"message_ids"`
+	Importance float64 `json:"importance"`
+	Topics     string  `json:"topics"`
+}
+
+// EntityDTO is a data transfer object for entities.
+type EntityDTO struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	CreatedAt   int64  `json:"created_at"`
+}
+
+// RelationshipDTO is a data transfer object for entity relationships.
+type RelationshipDTO struct {
+	ID           string  `json:"id"`
+	SourceEntity string  `json:"source_entity"`
+	TargetEntity string  `json:"target_entity"`
+	Relationship string  `json:"relationship"`
+	Confidence   float64 `json:"confidence"`
+	CreatedAt    int64   `json:"created_at"`
+}
+
+// SearchResultsDTO holds the combined results of a memory search.
+type SearchResultsDTO struct {
+	Facts    []FactDTO    `json:"facts"`
+	Episodes []EpisodeDTO `json:"episodes"`
+}
+
+// GetFacts returns all facts, optionally filtered by category.
+func (a *App) GetFacts(category string) ([]FactDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	var facts []memory.Fact
+	var err error
+	if category == "" {
+		facts, err = a.store.GetFacts(a.ctx, 100, 0)
+	} else {
+		facts, err = a.store.GetFactsByCategory(a.ctx, category)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting facts: %w", err)
+	}
+
+	dtos := make([]FactDTO, len(facts))
+	for i, f := range facts {
+		dtos[i] = FactDTO{
+			ID:         f.ID,
+			Fact:       f.Fact,
+			Category:   f.Category,
+			Confidence: f.Confidence,
+			Source:     f.Source,
+			CreatedAt:  f.CreatedAt,
+			UpdatedAt:  f.UpdatedAt,
+		}
+	}
+	return dtos, nil
+}
+
+// GetFact returns a single fact by its ID.
+func (a *App) GetFact(id string) (*FactDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	f, err := a.store.GetFact(a.ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting fact: %w", err)
+	}
+	if f == nil {
+		return nil, fmt.Errorf("fact not found: %s", id)
+	}
+
+	return &FactDTO{
+		ID:         f.ID,
+		Fact:       f.Fact,
+		Category:   f.Category,
+		Confidence: f.Confidence,
+		Source:     f.Source,
+		CreatedAt:  f.CreatedAt,
+		UpdatedAt:  f.UpdatedAt,
+	}, nil
+}
+
+// UpdateFact updates an existing fact's text, category, and confidence.
+func (a *App) UpdateFact(id, fact, category string, confidence float64) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+
+	existing, err := a.store.GetFact(a.ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting fact for update: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("fact not found: %s", id)
+	}
+
+	existing.Fact = fact
+	existing.Category = category
+	existing.Confidence = confidence
+	existing.UpdatedAt = now()
+
+	return a.store.UpdateFact(a.ctx, existing)
+}
+
+// DeleteFact removes a fact by its ID.
+func (a *App) DeleteFact(id string) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+	return a.store.DeleteFact(a.ctx, id)
+}
+
+// GetEpisodes returns a paginated list of episodes.
+func (a *App) GetEpisodes(limit, offset int) ([]EpisodeDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	episodes, err := a.store.GetEpisodes(a.ctx, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("getting episodes: %w", err)
+	}
+
+	dtos := make([]EpisodeDTO, len(episodes))
+	for i, ep := range episodes {
+		dtos[i] = EpisodeDTO{
+			ID:         ep.ID,
+			Summary:    ep.Summary,
+			StartTime:  ep.StartTime,
+			EndTime:    ep.EndTime,
+			MessageIDs: ep.MessageIDs,
+			Importance: ep.Importance,
+			Topics:     ep.Topics,
+		}
+	}
+	return dtos, nil
+}
+
+// GetEpisode returns a single episode by its ID.
+func (a *App) GetEpisode(id string) (*EpisodeDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	ep, err := a.store.GetEpisode(a.ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting episode: %w", err)
+	}
+	if ep == nil {
+		return nil, fmt.Errorf("episode not found: %s", id)
+	}
+
+	return &EpisodeDTO{
+		ID:         ep.ID,
+		Summary:    ep.Summary,
+		StartTime:  ep.StartTime,
+		EndTime:    ep.EndTime,
+		MessageIDs: ep.MessageIDs,
+		Importance: ep.Importance,
+		Topics:     ep.Topics,
+	}, nil
+}
+
+// GetEntities returns all entities.
+func (a *App) GetEntities() ([]EntityDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	entities, err := a.store.GetEntities(a.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting entities: %w", err)
+	}
+
+	dtos := make([]EntityDTO, len(entities))
+	for i, e := range entities {
+		dtos[i] = EntityDTO{
+			ID:          e.ID,
+			Name:        e.Name,
+			Type:        e.Type,
+			Description: e.Description,
+			CreatedAt:   e.CreatedAt,
+		}
+	}
+	return dtos, nil
+}
+
+// GetRelationships returns all relationships.
+func (a *App) GetRelationships() ([]RelationshipDTO, error) {
+	if a.ctx == nil {
+		return nil, fmt.Errorf("app not started")
+	}
+
+	rels, err := a.store.GetRelationships(a.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting relationships: %w", err)
+	}
+
+	dtos := make([]RelationshipDTO, len(rels))
+	for i, r := range rels {
+		dtos[i] = RelationshipDTO{
+			ID:           r.ID,
+			SourceEntity: r.SourceEntity,
+			TargetEntity: r.TargetEntity,
+			Relationship: r.Relationship,
+			Confidence:   r.Confidence,
+			CreatedAt:    r.CreatedAt,
+		}
+	}
+	return dtos, nil
+}
+
+// GetScratchpad returns the current scratchpad content.
+func (a *App) GetScratchpad() (string, error) {
+	if a.ctx == nil {
+		return "", fmt.Errorf("app not started")
+	}
+	return a.store.GetScratchpad(a.ctx)
+}
+
+// UpdateScratchpad replaces the scratchpad content.
+func (a *App) UpdateScratchpad(content string) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+	return a.store.UpdateScratchpad(a.ctx, content)
+}
+
+// SearchMemory performs a semantic or full-text search over facts and episodes.
+func (a *App) SearchMemory(query, searchType string) (SearchResultsDTO, error) {
+	if a.ctx == nil {
+		return SearchResultsDTO{}, fmt.Errorf("app not started")
+	}
+
+	switch searchType {
+	case "semantic":
+		return a.semanticSearch(query)
+	default:
+		return a.fullTextSearch(query)
+	}
+}
+
+// semanticSearch performs a vector similarity search using the configured embedder.
+func (a *App) semanticSearch(query string) (SearchResultsDTO, error) {
+	var results SearchResultsDTO
+
+	provider, ok := a.cfg.Providers[a.cfg.DefaultProvider]
+	if !ok {
+		return results, fmt.Errorf("default provider %q not configured", a.cfg.DefaultProvider)
+	}
+	embedder := memory.NewEmbedder(provider.Endpoint, provider.EmbeddingModel)
+	embedding, err := embedder.GenerateEmbedding(a.ctx, query)
+	if err != nil {
+		return results, fmt.Errorf("generating embedding: %w", err)
+	}
+	vec, err := memory.SerializeVector(embedding)
+	if err != nil {
+		return results, fmt.Errorf("serializing vector: %w", err)
+	}
+
+	facts, err := a.store.SearchFacts(a.ctx, vec, 10)
+	if err != nil {
+		return results, fmt.Errorf("searching facts: %w", err)
+	}
+	episodes, err := a.store.SearchEpisodes(a.ctx, vec, 10)
+	if err != nil {
+		return results, fmt.Errorf("searching episodes: %w", err)
+	}
+
+	results.Facts = make([]FactDTO, len(facts))
+	for i, f := range facts {
+		results.Facts[i] = factToDTO(&f)
+	}
+	results.Episodes = make([]EpisodeDTO, len(episodes))
+	for i, ep := range episodes {
+		results.Episodes[i] = episodeToDTO(&ep)
+	}
+	return results, nil
+}
+
+// fullTextSearch performs a substring match over facts and episodes.
+func (a *App) fullTextSearch(query string) (SearchResultsDTO, error) {
+	var results SearchResultsDTO
+	pattern := "%" + query + "%"
+
+	allFacts, err := a.store.GetFacts(a.ctx, 100, 0)
+	if err != nil {
+		return results, fmt.Errorf("getting facts for search: %w", err)
+	}
+	for _, f := range allFacts {
+		if contains(f.Fact, pattern) || contains(f.Category, pattern) {
+			results.Facts = append(results.Facts, factToDTO(&f))
+		}
+	}
+
+	allEpisodes, err := a.store.GetEpisodes(a.ctx, 100, 0)
+	if err != nil {
+		return results, fmt.Errorf("getting episodes for search: %w", err)
+	}
+	for _, ep := range allEpisodes {
+		if contains(ep.Summary, pattern) || contains(ep.Topics, pattern) {
+			results.Episodes = append(results.Episodes, episodeToDTO(&ep))
+		}
+	}
+	return results, nil
+}
+
+func factToDTO(f *memory.Fact) FactDTO {
+	return FactDTO{
+		ID:         f.ID,
+		Fact:       f.Fact,
+		Category:   f.Category,
+		Confidence: f.Confidence,
+		Source:     f.Source,
+		CreatedAt:  f.CreatedAt,
+		UpdatedAt:  f.UpdatedAt,
+	}
+}
+
+func episodeToDTO(ep *memory.Episode) EpisodeDTO {
+	return EpisodeDTO{
+		ID:         ep.ID,
+		Summary:    ep.Summary,
+		StartTime:  ep.StartTime,
+		EndTime:    ep.EndTime,
+		MessageIDs: ep.MessageIDs,
+		Importance: ep.Importance,
+		Topics:     ep.Topics,
+	}
+}
+
+// now returns the current Unix timestamp in milliseconds.
+func now() int64 {
+	return time.Now().UnixMilli()
+}
+
+// contains checks if a string contains a LIKE pattern (simple substring match).
+func contains(s, pattern string) bool {
+	return len(pattern) > 2 && strings.Contains(s, pattern[1:len(pattern)-1])
 }
 
 func messageToDTO(msg *memory.Message) *MessageDTO {
