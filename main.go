@@ -63,6 +63,11 @@ func main() {
 	daemonMode := flag.Bool("daemon", false, "Run in daemon mode (no GUI, Telegram only)")
 	flag.Parse()
 
+	runApp(*daemonMode)
+}
+
+// runApp initializes all Remy components and starts the application.
+func runApp(daemonMode bool) {
 	cfgPath, err := config.ConfigPath()
 	if err != nil {
 		log.Fatalf("Error determining config path: %v", err)
@@ -132,7 +137,7 @@ func main() {
 
 	fmt.Printf("Remy %s starting...\n", version)
 
-	if *daemonMode {
+	if daemonMode {
 		// Daemon mode: run Telegram + scheduler only, block until signal
 		log.Println("Running in daemon mode (no GUI)")
 		select {}

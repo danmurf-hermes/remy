@@ -142,7 +142,7 @@ Always be respectful, honest, and helpful.`,
 
 // checkOllama checks if Ollama is running at the default endpoint
 // or any common alternative. Returns true and the endpoint URL if found.
-func checkOllama() (bool, string) {
+func checkOllama() (found bool, endpoint string) {
 	endpoints := []string{
 		"http://localhost:11434/v1",
 		"http://localhost:11434",
@@ -152,16 +152,16 @@ func checkOllama() (bool, string) {
 
 	client := &http.Client{Timeout: 2 * time.Second}
 
-	for _, endpoint := range endpoints {
-		// Try the /v1/models endpoint (OpenAI-compatible)
-		modelsURL := endpoint + "/models"
-		if strings.HasSuffix(endpoint, "/v1") {
-			modelsURL = endpoint + "/models"
+	for _, ep := range endpoints {
+		// Build the models URL based on whether the endpoint already has /v1
+		var modelsURL string
+		if strings.HasSuffix(ep, "/v1") {
+			modelsURL = ep + "/models"
 		} else {
-			modelsURL = endpoint + "/v1/models"
+			modelsURL = ep + "/v1/models"
 		}
 
-		req, err := http.NewRequest("GET", modelsURL, nil)
+		req, err := http.NewRequest("GET", modelsURL, http.NoBody)
 		if err != nil {
 			continue
 		}
@@ -170,13 +170,13 @@ func checkOllama() (bool, string) {
 		if err != nil {
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
-			// Return the base endpoint (without /v1 if it was added)
-			baseEndpoint := endpoint
-			if !strings.HasSuffix(endpoint, "/v1") {
-				baseEndpoint = endpoint + "/v1"
+			// Return the base endpoint (with /v1)
+			baseEndpoint := ep
+			if !strings.HasSuffix(ep, "/v1") {
+				baseEndpoint = ep + "/v1"
 			}
 			return true, baseEndpoint
 		}
@@ -191,7 +191,7 @@ func checkModel(endpoint, model string) bool {
 	modelsURL := strings.TrimSuffix(endpoint, "/v1") + "/v1/models"
 	client := &http.Client{Timeout: 2 * time.Second}
 
-	req, err := http.NewRequest("GET", modelsURL, nil)
+	req, err := http.NewRequest("GET", modelsURL, http.NoBody)
 	if err != nil {
 		return false
 	}
@@ -200,7 +200,7 @@ func checkModel(endpoint, model string) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return false

@@ -9,20 +9,22 @@ import (
 	"testing"
 )
 
+// setHome sets HOME for the duration of a test and restores it via t.Cleanup.
+func setHome(t *testing.T, home string) {
+	t.Helper()
+	origHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", home)
+	t.Cleanup(func() { _ = os.Setenv("HOME", origHome) })
+}
+
 // TestInitCmd tests the init command logic by running it in a temporary directory
 // with a mocked home directory.
 func TestInitCmd(t *testing.T) {
-	// Save original home and restore after test
-	origHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", origHome)
-
-	// Create a temporary home directory
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	setHome(t, tmpHome)
 
 	// Run initCmd - it should succeed even without Ollama running
-	err := initCmd()
-	if err != nil {
+	if err := initCmd(); err != nil {
 		t.Fatalf("initCmd() returned error: %v", err)
 	}
 
@@ -74,11 +76,8 @@ func TestInitCmd(t *testing.T) {
 // TestInitCmdIdempotent tests that running init twice doesn't cause errors
 // and doesn't overwrite existing files.
 func TestInitCmdIdempotent(t *testing.T) {
-	origHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", origHome)
-
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	setHome(t, tmpHome)
 
 	// First run
 	if err := initCmd(); err != nil {
@@ -141,11 +140,8 @@ func TestFirstRunCheck(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			origHome := os.Getenv("HOME")
-			defer os.Setenv("HOME", origHome)
-
 			tmpHome := t.TempDir()
-			os.Setenv("HOME", tmpHome)
+			setHome(t, tmpHome)
 
 			tt.setup(t, tmpHome)
 
@@ -167,15 +163,14 @@ func TestCheckOllama(t *testing.T) {
 		if r.URL.Path == "/v1/models" || r.URL.Path == "/models" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"data":[{"id":"llama3.1:8b"},{"id":"nomic-embed-text"}]}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"llama3.1:8b"},{"id":"nomic-embed-text"}]}`))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer server.Close()
 
-	// Override the endpoints to use our test server
-	// We can't easily override the endpoints slice, so let's test the checkModel function directly
+	// Test checkModel function directly
 	found := checkModel(server.URL+"/v1", "llama3.1:8b")
 	if !found {
 		t.Error("checkModel should have found llama3.1:8b")
@@ -197,7 +192,7 @@ func TestCheckModelWithEmptyResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"data":[]}`))
+		_, _ = w.Write([]byte(`{"data":[]}`))
 	}))
 	defer server.Close()
 
