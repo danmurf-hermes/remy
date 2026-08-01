@@ -348,7 +348,7 @@ func (a *App) GetFact(id string) (*FactDTO, error) {
 		return nil, fmt.Errorf("getting fact: %w", err)
 	}
 	if f == nil {
-		return nil, nil
+		return nil, fmt.Errorf("fact not found: %s", id)
 	}
 
 	return &FactDTO{
@@ -429,7 +429,7 @@ func (a *App) GetEpisode(id string) (*EpisodeDTO, error) {
 		return nil, fmt.Errorf("getting episode: %w", err)
 	}
 	if ep == nil {
-		return nil, nil
+		return nil, fmt.Errorf("episode not found: %s", id)
 	}
 
 	return &EpisodeDTO{
@@ -514,99 +514,101 @@ func (a *App) SearchMemory(query, searchType string) (SearchResultsDTO, error) {
 		return SearchResultsDTO{}, fmt.Errorf("app not started")
 	}
 
+	switch searchType {
+	case "semantic":
+		return a.semanticSearch(query)
+	default:
+		return a.fullTextSearch(query)
+	}
+}
+
+// semanticSearch performs a vector similarity search using the configured embedder.
+func (a *App) semanticSearch(query string) (SearchResultsDTO, error) {
 	var results SearchResultsDTO
 
-	if searchType == "semantic" {
-		// Generate embedding and search
-		provider, ok := a.cfg.Providers[a.cfg.DefaultProvider]
-		if !ok {
-			return results, fmt.Errorf("default provider %q not configured", a.cfg.DefaultProvider)
-		}
-		embedder := memory.NewEmbedder(provider.Endpoint, provider.EmbeddingModel)
-		embedding, err := embedder.GenerateEmbedding(a.ctx, query)
-		if err != nil {
-			return results, fmt.Errorf("generating embedding: %w", err)
-		}
-		vec, err := memory.SerializeVector(embedding)
-		if err != nil {
-			return results, fmt.Errorf("serializing vector: %w", err)
-		}
+	provider, ok := a.cfg.Providers[a.cfg.DefaultProvider]
+	if !ok {
+		return results, fmt.Errorf("default provider %q not configured", a.cfg.DefaultProvider)
+	}
+	embedder := memory.NewEmbedder(provider.Endpoint, provider.EmbeddingModel)
+	embedding, err := embedder.GenerateEmbedding(a.ctx, query)
+	if err != nil {
+		return results, fmt.Errorf("generating embedding: %w", err)
+	}
+	vec, err := memory.SerializeVector(embedding)
+	if err != nil {
+		return results, fmt.Errorf("serializing vector: %w", err)
+	}
 
-		facts, err := a.store.SearchFacts(a.ctx, vec, 10)
-		if err != nil {
-			return results, fmt.Errorf("searching facts: %w", err)
-		}
-		episodes, err := a.store.SearchEpisodes(a.ctx, vec, 10)
-		if err != nil {
-			return results, fmt.Errorf("searching episodes: %w", err)
-		}
+	facts, err := a.store.SearchFacts(a.ctx, vec, 10)
+	if err != nil {
+		return results, fmt.Errorf("searching facts: %w", err)
+	}
+	episodes, err := a.store.SearchEpisodes(a.ctx, vec, 10)
+	if err != nil {
+		return results, fmt.Errorf("searching episodes: %w", err)
+	}
 
-		results.Facts = make([]FactDTO, len(facts))
-		for i, f := range facts {
-			results.Facts[i] = FactDTO{
-				ID:         f.ID,
-				Fact:       f.Fact,
-				Category:   f.Category,
-				Confidence: f.Confidence,
-				Source:     f.Source,
-				CreatedAt:  f.CreatedAt,
-				UpdatedAt:  f.UpdatedAt,
-			}
-		}
-		results.Episodes = make([]EpisodeDTO, len(episodes))
-		for i, ep := range episodes {
-			results.Episodes[i] = EpisodeDTO{
-				ID:         ep.ID,
-				Summary:    ep.Summary,
-				StartTime:  ep.StartTime,
-				EndTime:    ep.EndTime,
-				MessageIDs: ep.MessageIDs,
-				Importance: ep.Importance,
-				Topics:     ep.Topics,
-			}
-		}
-	} else {
-		// Full-text search — use LIKE on facts and episodes
-		pattern := "%" + query + "%"
+	results.Facts = make([]FactDTO, len(facts))
+	for i, f := range facts {
+		results.Facts[i] = factToDTO(f)
+	}
+	results.Episodes = make([]EpisodeDTO, len(episodes))
+	for i, ep := range episodes {
+		results.Episodes[i] = episodeToDTO(ep)
+	}
+	return results, nil
+}
 
-		allFacts, err := a.store.GetFacts(a.ctx, 100, 0)
-		if err != nil {
-			return results, fmt.Errorf("getting facts for search: %w", err)
-		}
-		for _, f := range allFacts {
-			if contains(f.Fact, pattern) || contains(f.Category, pattern) {
-				results.Facts = append(results.Facts, FactDTO{
-					ID:         f.ID,
-					Fact:       f.Fact,
-					Category:   f.Category,
-					Confidence: f.Confidence,
-					Source:     f.Source,
-					CreatedAt:  f.CreatedAt,
-					UpdatedAt:  f.UpdatedAt,
-				})
-			}
-		}
+// fullTextSearch performs a substring match over facts and episodes.
+func (a *App) fullTextSearch(query string) (SearchResultsDTO, error) {
+	var results SearchResultsDTO
+	pattern := "%" + query + "%"
 
-		allEpisodes, err := a.store.GetEpisodes(a.ctx, 100, 0)
-		if err != nil {
-			return results, fmt.Errorf("getting episodes for search: %w", err)
-		}
-		for _, ep := range allEpisodes {
-			if contains(ep.Summary, pattern) || contains(ep.Topics, pattern) {
-				results.Episodes = append(results.Episodes, EpisodeDTO{
-					ID:         ep.ID,
-					Summary:    ep.Summary,
-					StartTime:  ep.StartTime,
-					EndTime:    ep.EndTime,
-					MessageIDs: ep.MessageIDs,
-					Importance: ep.Importance,
-					Topics:     ep.Topics,
-				})
-			}
+	allFacts, err := a.store.GetFacts(a.ctx, 100, 0)
+	if err != nil {
+		return results, fmt.Errorf("getting facts for search: %w", err)
+	}
+	for _, f := range allFacts {
+		if contains(f.Fact, pattern) || contains(f.Category, pattern) {
+			results.Facts = append(results.Facts, factToDTO(f))
 		}
 	}
 
+	allEpisodes, err := a.store.GetEpisodes(a.ctx, 100, 0)
+	if err != nil {
+		return results, fmt.Errorf("getting episodes for search: %w", err)
+	}
+	for _, ep := range allEpisodes {
+		if contains(ep.Summary, pattern) || contains(ep.Topics, pattern) {
+			results.Episodes = append(results.Episodes, episodeToDTO(ep))
+		}
+	}
 	return results, nil
+}
+
+func factToDTO(f memory.Fact) FactDTO {
+	return FactDTO{
+		ID:         f.ID,
+		Fact:       f.Fact,
+		Category:   f.Category,
+		Confidence: f.Confidence,
+		Source:     f.Source,
+		CreatedAt:  f.CreatedAt,
+		UpdatedAt:  f.UpdatedAt,
+	}
+}
+
+func episodeToDTO(ep memory.Episode) EpisodeDTO {
+	return EpisodeDTO{
+		ID:         ep.ID,
+		Summary:    ep.Summary,
+		StartTime:  ep.StartTime,
+		EndTime:    ep.EndTime,
+		MessageIDs: ep.MessageIDs,
+		Importance: ep.Importance,
+		Topics:     ep.Topics,
+	}
 }
 
 // now returns the current Unix timestamp in milliseconds.
