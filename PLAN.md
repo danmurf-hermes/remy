@@ -191,29 +191,34 @@ Every push runs:
 **Goal:** Implement the core agent orchestration loop — receive message, retrieve context, build prompt, call LLM, store response, send to interface.
 
 **Tasks:**
-- [ ] Create `internal/agent/agent.go`:
-  - `NewAgent(store, llm, persona) *Agent`
+- [x] Create `internal/agent/agent.go`:
+  - `NewAgent(store, llm, embedder, cfg) *Agent`
   - `HandleMessage(ctx, msg) (*Message, error)` — the core loop (ARCHITECTURE.md §9)
   - Context retrieval: embed message, search episodes + facts, load scratchpad, load recent history
   - Prompt building: system prompt + scratchpad + retrieved context + history + current message
   - Response handling: store response, return it
-- [ ] Create `internal/agent/prompt.go`:
-  - `BuildSystemPrompt(persona) string`
-  - `BuildContextSection(episodes, facts) string`
-  - Token counting and context window management
-- [ ] Create `internal/agent/agent_test.go`:
+- [x] Create `internal/agent/prompt.go`:
+  - `BuildPrompt(input PromptInput) PromptResult` — assembles system prompt, scratchpad, episodes, facts, history, and user message
+  - Context section formatting for episodes and facts
+- [x] Create `internal/agent/agent_test.go`:
   - Mock store and mock LLM provider
-  - Table-driven tests for: normal message flow, empty context, context retrieval, error handling
+  - 16 tests covering: normal message flow, empty context, context retrieval, error handling (LLM down, store failure, embedding failure, scratchpad error, search errors, vector save error), custom config, concurrent messages, empty messages, empty LLM response
   - Test prompt building with various inputs
-  - Test context window eviction logic
 
 **Acceptance criteria:**
-- All tests pass with `go test ./internal/agent/... -cover`
-- Coverage >= 80%
-- Agent correctly retrieves context and builds prompts
-- Agent handles errors gracefully (LLM down, store failure)
+- [x] All tests pass with `go test ./internal/agent/... -cover`
+- [x] Coverage >= 80% (achieved 93.1%)
+- [x] Agent correctly retrieves context and builds prompts
+- [x] Agent handles errors gracefully (LLM down, store failure)
 
 **Notes for next person:**
+- 16 tests, 93.1% coverage on `internal/agent/`.
+- The `Store` interface in `agent.go` defines the subset of `memory.Store` methods the agent needs, making it easy to mock in tests.
+- The `Embedder` interface abstracts embedding generation, allowing tests to use `mockEmbedder` instead of a real HTTP client.
+- The `Config` struct controls working memory turns, user ID, session ID, and interface name.
+- `BuildPrompt` assembles a system prompt with scratchpad, relevant episodes, and facts, then appends conversation history and the current user message.
+- Token counting and context window eviction were deferred to Stage 13 (Polish) — the current implementation relies on the LLM's context window and the `WorkingMemoryTurns` config value.
+- The `memory.Embedder` type is not used directly; the agent uses the `Embedder` interface instead. When wiring up in `main.go`, pass `memory.NewEmbedder(...)` which satisfies the interface.
 
 ---
 
@@ -623,7 +628,7 @@ Every push runs:
 | 1. Project Scaffolding | [x] | 2026-08-01 | 2026-08-01 | CLI binary, config, frontend skeleton, CI, Makefile all working |
 | 2. SQLite Database Layer | [ ] | — | — | |
 | 3. LLM Client & Provider | [x] | 2026-08-01 | 2026-08-01 | 21 tests, 92.4% coverage. Provider interface with Chat, ChatStream, Embed. OllamaClient with SSE streaming, API key auth, model override. |
-| 4. Agent Core Loop | [ ] | — | — | |
+| 4. Agent Core Loop | [x] | 2026-08-01 | 2026-08-01 | 16 tests, 93.1% coverage. Store/Embedder interfaces for testability. Full pipeline: embed → retrieve → build prompt → call LLM → store response. |
 | 5. Persona System | [ ] | — | — | |
 | 6. Consolidation Engine | [ ] | — | — | |
 | 7. Scheduler & Tasks | [ ] | — | — | |
