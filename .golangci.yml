@@ -16,7 +16,6 @@ linters:
     - misspell
     - prealloc
     - revive
-    - gofumpt
     - gocyclo
     - dupl
     - nilnil
@@ -87,3 +86,4 @@ linters:
 formatters:
   enable:
     - gofmt
+    - gofumpt
