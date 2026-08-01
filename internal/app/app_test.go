@@ -35,7 +35,7 @@ func (f *fakeAgent) HandleMessageStream(ctx context.Context, userMsg string) (<-
 	if f.handleMessageStreamFn != nil {
 		return f.handleMessageStreamFn(ctx, userMsg)
 	}
-	ch := make(chan agent.StreamChunk, 2)
+	ch := make(chan agent.StreamChunk, 3)
 	ch <- agent.StreamChunk{Content: "Hello "}
 	ch <- agent.StreamChunk{Content: "world!"}
 	ch <- agent.StreamChunk{Done: true}
