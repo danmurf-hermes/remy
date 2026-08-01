@@ -283,3 +283,174 @@ export function onStreamError(callback) {
     runtime.EventsOn('stream:error', callback)
   }
 }
+
+// --- Stage 10: Tasks, Activity Log, Config bindings ---
+
+export async function getTasks(status) {
+  if (isWails) {
+    return window.go.main.App.GetTasks(status)
+  }
+  // Mock data for testing
+  const now = Date.now()
+  return [
+    {
+      id: 'task-1',
+      type: 'reminder',
+      status: 'pending',
+      trigger_at: now + 3600000,
+      cron_expr: '',
+      action: '{"text":"Check email"}',
+      context: '',
+      created_at: now - 86400000,
+      fired_at: 0,
+    },
+    {
+      id: 'task-2',
+      type: 'reminder',
+      status: 'pending',
+      trigger_at: now + 7200000,
+      cron_expr: '',
+      action: '{"text":"Stand up meeting"}',
+      context: '',
+      created_at: now - 43200000,
+      fired_at: 0,
+    },
+    {
+      id: 'task-3',
+      type: 'reminder',
+      status: 'fired',
+      trigger_at: now - 3600000,
+      cron_expr: '',
+      action: '{"text":"Morning coffee"}',
+      context: '',
+      created_at: now - 86400000,
+      fired_at: now - 3600000,
+    },
+    {
+      id: 'task-4',
+      type: 'reminder',
+      status: 'pending',
+      trigger_at: now + 86400000,
+      cron_expr: '0 9 * * *',
+      action: '{"text":"Daily standup"}',
+      context: '',
+      created_at: now - 172800000,
+      fired_at: 0,
+    },
+  ]
+}
+
+export async function createTask(taskType, triggerAt, cronExpr, action, context) {
+  if (isWails) {
+    return window.go.main.App.CreateTask(taskType, triggerAt, cronExpr, action, context)
+  }
+  return {
+    id: 'new-task-' + Date.now(),
+    type: taskType,
+    status: 'pending',
+    trigger_at: parseInt(triggerAt) || Date.now() + 3600000,
+    cron_expr: cronExpr || '',
+    action: action,
+    context: context || '',
+    created_at: Date.now(),
+    fired_at: 0,
+  }
+}
+
+export async function cancelTask(id) {
+  if (isWails) {
+    return window.go.main.App.CancelTask(id)
+  }
+  return null
+}
+
+export async function getActivityLog(filter, limit, offset) {
+  if (isWails) {
+    return window.go.main.App.GetActivityLog(filter, limit, offset)
+  }
+  // Mock data for testing
+  const now = Date.now()
+  return [
+    {
+      id: 'act-1',
+      timestamp: now - 60000,
+      type: 'message',
+      details: '{"role":"user","content":"Hello Remy"}',
+      message_id: 'msg-1',
+      session_id: 'default',
+    },
+    {
+      id: 'act-2',
+      timestamp: now - 55000,
+      type: 'retrieval',
+      details: '{"query":"user preferences","results":2}',
+      message_id: 'msg-1',
+      session_id: 'default',
+    },
+    {
+      id: 'act-3',
+      timestamp: now - 50000,
+      type: 'llm',
+      details: '{"model":"llama3.1:8b","tokens":145,"duration_ms":3200}',
+      message_id: 'msg-1',
+      session_id: 'default',
+    },
+    {
+      id: 'act-4',
+      timestamp: now - 45000,
+      type: 'consolidation',
+      details: '{"episodes_created":1,"facts_extracted":3}',
+      message_id: '',
+      session_id: 'default',
+    },
+    {
+      id: 'act-5',
+      timestamp: now - 120000,
+      type: 'error',
+      details: '{"error":"LLM request timed out","retry":true}',
+      message_id: 'msg-0',
+      session_id: 'default',
+    },
+  ]
+}
+
+export async function getConfig() {
+  if (isWails) {
+    return window.go.main.App.GetConfig()
+  }
+  return {
+    providers: {
+      ollama: {
+        endpoint: 'http://localhost:11434/v1',
+        chat_model: 'llama3.1:8b',
+        embedding_model: 'nomic-embed-text',
+        parameters: { temperature: 0.7, max_tokens: 4096 },
+      },
+    },
+    default_provider: 'ollama',
+    memory: {
+      db_path: '~/.remy/memory.db',
+      working_memory_turns: 20,
+      quick_consolidation_delay_ms: 300000,
+      deep_consolidation_delay_ms: 1800000,
+    },
+    persona: {
+      active: 'default',
+      directory: '~/.remy/personas/',
+    },
+    interfaces: {
+      telegram: {
+        enabled: false,
+        bot_token: '',
+        allowed_users: [],
+      },
+    },
+  }
+}
+
+export async function updateConfig(config) {
+  if (isWails) {
+    return window.go.main.App.UpdateConfig(config)
+  }
+  return null
+}

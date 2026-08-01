@@ -3,6 +3,10 @@
   import Chat from './lib/Chat.svelte'
   import ConversationList from './lib/ConversationList.svelte'
   import MemoryExplorer from './lib/MemoryExplorer.svelte'
+  import TaskManager from './lib/TaskManager.svelte'
+  import PersonaStudio from './lib/PersonaStudio.svelte'
+  import ActivityLog from './lib/ActivityLog.svelte'
+  import Settings from './lib/Settings.svelte'
   import { activeTab } from './lib/stores.js'
 </script>
 
@@ -17,25 +21,13 @@
     {:else if $activeTab === 'memory'}
       <MemoryExplorer />
     {:else if $activeTab === 'tasks'}
-      <div class="placeholder-tab">
-        <h2>Tasks & Schedule</h2>
-        <p>Coming soon</p>
-      </div>
+      <TaskManager />
     {:else if $activeTab === 'personas'}
-      <div class="placeholder-tab">
-        <h2>Persona Studio</h2>
-        <p>Coming soon</p>
-      </div>
+      <PersonaStudio />
     {:else if $activeTab === 'activity'}
-      <div class="placeholder-tab">
-        <h2>Activity Log</h2>
-        <p>Coming soon</p>
-      </div>
+      <ActivityLog />
     {:else if $activeTab === 'settings'}
-      <div class="placeholder-tab">
-        <h2>Settings</h2>
-        <p>Coming soon</p>
-      </div>
+      <Settings />
     {/if}
   </main>
 </div>
@@ -59,25 +51,5 @@
     display: flex;
     flex: 1;
     overflow: hidden;
-  }
-
-  .placeholder-tab {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #86868b;
-  }
-
-  .placeholder-tab h2 {
-    margin: 0 0 8px 0;
-    font-size: 20px;
-    font-weight: 600;
-  }
-
-  .placeholder-tab p {
-    margin: 0;
-    font-size: 14px;
   }
 </style>

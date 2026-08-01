@@ -19,3 +19,8 @@ export const scratchpad = writable('')
 export const searchResults = writable(null)
 export const searchType = writable('fulltext')
 export const memorySubTab = writable('facts')
+
+// Stage 10 stores
+export const tasks = writable([])
+export const activityLog = writable([])
+export const config = writable(null)
