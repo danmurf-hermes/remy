@@ -25,8 +25,8 @@ func TestAgent_NewAgent(t *testing.T) {
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	cfg := agent.DefaultConfig()
 
-	agent := agent.NewAgent(store, provider, embedder, cfg)
-	if agent == nil {
+	a := agent.NewAgent(store, provider, embedder, cfg)
+	if a == nil {
 		t.Fatal("expected non-nil agent")
 	}
 }
@@ -442,9 +442,9 @@ func TestAgent_HandleMessage(t *testing.T) {
 			if tt.cfg != (agent.Config{}) {
 				cfg = tt.cfg
 			}
-			agent := agent.NewAgent(store, provider, embedder, cfg)
+			a := agent.NewAgent(store, provider, embedder, cfg)
 
-			resp, err := agent.HandleMessage(context.Background(), tt.userMsg)
+			resp, err := a.HandleMessage(context.Background(), tt.userMsg)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -532,9 +532,9 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	agent := agent.NewAgent(store, provider, embedder, cfg)
+	a := agent.NewAgent(store, provider, embedder, cfg)
 
-	resp1, err := agent.HandleMessage(context.Background(), "First message")
+	resp1, err := a.HandleMessage(context.Background(), "First message")
 	if err != nil {
 		t.Fatalf("unexpected error on first message: %v", err)
 	}
@@ -542,7 +542,7 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 		t.Fatal("expected non-nil response for first message")
 	}
 
-	resp2, err := agent.HandleMessage(context.Background(), "Second message")
+	resp2, err := a.HandleMessage(context.Background(), "Second message")
 	if err != nil {
 		t.Fatalf("unexpected error on second message: %v", err)
 	}

@@ -26,7 +26,7 @@ jobs:
       - name: Lint (golangci-lint includes govet, gofmt, and all other linters)
         uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
+          version: v2.12
 
       - name: Go test
         run: go test ./internal/... -cover

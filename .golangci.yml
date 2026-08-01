@@ -1,8 +1,9 @@
+version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
 
 linters:
+  default: none
   enable:
     - errcheck
     - govet
@@ -15,7 +16,6 @@ linters:
     - misspell
     - prealloc
     - revive
-    - gofmt
   settings:
     gocritic:
       enabled-tags:
@@ -49,7 +49,7 @@ linters:
         - name: confusing-results
         - name: exported
         - name: package-comments
-        - name: test-package-naming
+
     misspell:
       locale: US
     prealloc:
@@ -72,3 +72,7 @@ linters:
       - linters:
           - revive
         text: "blank-imports"
+
+formatters:
+  enable:
+    - gofmt
