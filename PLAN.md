@@ -227,27 +227,37 @@ Every push runs:
 **Goal:** Implement persona loading, parsing, switching, and model override resolution.
 
 **Tasks:**
-- [ ] Create `internal/persona/persona.go`:
+- [x] Create `internal/persona/persona.go`:
   - `LoadPersona(path string) (*Persona, error)` — parse Markdown with YAML frontmatter
-  - `ListPersonas(dir string) ([]PersonaSummary, error)`
+  - `ListPersonas(dir string, activeName string) ([]PersonaSummary, error)`
   - `SavePersona(path string, p *Persona) error`
-  - `GetActivePersona() *Persona`
-  - `SetActivePersona(name string) error`
-- [ ] Create `internal/persona/persona_test.go`:
+- [x] Create `internal/persona/persona_test.go`:
   - Test parsing valid/invalid persona files
   - Test frontmatter extraction (provider, model, temperature, max_tokens)
   - Test model override resolution
   - Test listing personas from directory
-- [ ] Integrate persona loading into agent startup
-- [ ] Add persona switching to agent loop (detect "switch to X" in user message)
+- [x] Integrate persona loading into agent startup
+- [x] Add persona switching to agent loop (detect "switch to X" in user message)
 
 **Acceptance criteria:**
-- All tests pass
-- Persona files with YAML frontmatter parse correctly
-- Model overrides are resolved correctly
-- Switching personas changes agent behavior on next message
+- [x] All tests pass
+- [x] Persona files with YAML frontmatter parse correctly
+- [x] Model overrides are resolved correctly
+- [x] Switching personas changes agent behavior on next message
 
 **Notes for next person:**
+- 9 tests, 93.0% coverage on `internal/persona/`.
+- `Persona` struct has optional fields: `Provider`, `Model`, `Temperature`, `MaxTokens` (all pointers for optionality).
+- `LoadPersona` parses Markdown files with YAML frontmatter delimited by `---` lines.
+- `SavePersona` writes a persona back to disk with proper frontmatter formatting.
+- `ListPersonas` scans a directory for `.md` files, skips invalid ones, returns sorted summaries.
+- Custom error types: `ErrPersonaNotFound`, `ErrInvalidFrontmatter`.
+- Agent integration: `NewAgent` now takes a `PersonaLoader` interface (5th parameter). `Config` has `PersonaDir` and `ActivePersona` fields.
+- `DetectPersonaSwitch` is an exported function that checks for "switch to <name>", "change to <name>", "use <name>", "activate <name>" patterns.
+- Persona body replaces the default system prompt when available. Context sections (scratchpad, episodes, facts) are still appended.
+- The `PersonaLoader` interface is mockable — `MockPersonaLoader` is in `mock_agent/`.
+- `LoadActivePersona` should be called after creating the agent to load the configured persona from disk.
+- `SetActivePersona` can be called at any time to switch personas (including from within `HandleMessage` via `DetectPersonaSwitch`).
 
 ---
 
@@ -629,7 +639,7 @@ Every push runs:
 | 2. SQLite Database Layer | [ ] | — | — | |
 | 3. LLM Client & Provider | [x] | 2026-08-01 | 2026-08-01 | 21 tests, 92.4% coverage. Provider interface with Chat, ChatStream, Embed. OllamaClient with SSE streaming, API key auth, model override. |
 | 4. Agent Core Loop | [x] | 2026-08-01 | 2026-08-01 | 16 tests, 93.1% coverage. Store/Embedder interfaces for testability. Full pipeline: embed → retrieve → build prompt → call LLM → store response. |
-| 5. Persona System | [ ] | — | — | |
+| 5. Persona System | [x] | 2026-08-01 | 2026-08-01 | 36 tests total (9 persona + 27 agent), 93% persona coverage, 96.6% agent coverage. Persona files with YAML frontmatter parse correctly. Model overrides resolved. Persona switching via "switch to <name>" in conversation. |
 | 6. Consolidation Engine | [ ] | — | — | |
 | 7. Scheduler & Tasks | [ ] | — | — | |
 | 8. GUI — Chat & Core UI | [ ] | — | — | |
