@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/app"
 	"github.com/danmurf/remy/internal/config"
+	"github.com/danmurf/remy/internal/interface/telegram"
 	"github.com/danmurf/remy/internal/llm"
 	"github.com/danmurf/remy/internal/memory"
 	"github.com/danmurf/remy/internal/scheduler"
@@ -39,6 +41,9 @@ func (e wailsEmitter) Emit(event string, data any) error {
 }
 
 func main() {
+	daemonMode := flag.Bool("daemon", false, "Run in daemon mode (no GUI, Telegram only)")
+	flag.Parse()
+
 	cfgPath, err := config.ConfigPath()
 	if err != nil {
 		log.Fatalf("Error determining config path: %v", err)
@@ -93,15 +98,32 @@ func main() {
 	ag := agent.NewAgent(store, llmProvider, embedder, personaLoader, sched, agentCfg)
 	sched.SetAgent(ag)
 
-	application, err := app.NewApp(cfg, cfgPath, store, ag)
-	if err != nil {
-		_ = store.Close()
-		log.Fatalf("Error creating app: %v", err)
+	// Start Telegram interface if enabled
+	var tgInterface *telegram.Interface
+	if cfg.Interfaces.Telegram.Enabled {
+		tgCfg := &cfg.Interfaces.Telegram
+		tgInterface = telegram.New(ag, store, tgCfg)
+		if err := tgInterface.Start(context.Background()); err != nil {
+			log.Fatalf("Error starting Telegram interface: %v", err)
+		}
+		log.Printf("Telegram interface started (bot token: %s)", maskToken(tgCfg.BotToken))
 	}
 
 	sched.Start(context.Background())
 
 	fmt.Printf("Remy %s starting...\n", version)
+
+	if *daemonMode {
+		// Daemon mode: run Telegram + scheduler only, block until signal
+		log.Println("Running in daemon mode (no GUI)")
+		select {}
+	}
+
+	application, err := app.NewApp(cfg, cfgPath, store, ag)
+	if err != nil {
+		_ = store.Close()
+		log.Fatalf("Error creating app: %v", err)
+	}
 
 	err = wails.Run(&options.App{
 		Title:  "Remy",
@@ -114,7 +136,12 @@ func main() {
 			application.SetEmitter(wailsEmitter{ctx: ctx})
 			application.Startup(ctx)
 		},
-		OnShutdown: application.Shutdown,
+		OnShutdown: func(ctx context.Context) {
+			application.Shutdown(ctx)
+			if tgInterface != nil {
+				tgInterface.Stop()
+			}
+		},
 		Bind: []any{
 			application,
 		},
@@ -128,4 +155,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error running application: %v", err)
 	}
+}
+
+// maskToken returns a masked version of a bot token for logging.
+func maskToken(token string) string {
+	if len(token) <= 8 {
+		return "***"
+	}
+	return token[:4] + "..." + token[len(token)-4:]
 }
