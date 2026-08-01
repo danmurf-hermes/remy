@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func (s *Store) SaveMessage(ctx context.Context, msg Message) error {
+func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,8 +53,8 @@ func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, 
 	query, args, err := sb.Select("id", "user_id", "role", "content", "timestamp", "interface", "session_id").
 		From("messages").
 		OrderBy("timestamp DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
+		Limit(uint64(limit)).   //nolint:gosec // limit from user input
+		Offset(uint64(offset)). //nolint:gosec // offset from user input
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("building select: %w", err)

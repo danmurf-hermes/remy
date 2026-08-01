@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func (s *Store) LogActivity(ctx context.Context, entry ActivityEntry) error {
+func (s *Store) LogActivity(ctx context.Context, entry *ActivityEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,8 +33,8 @@ func (s *Store) GetActivityLog(ctx context.Context, filter string, limit, offset
 	b := sb.Select("id", "timestamp", "type", "details", "message_id", "session_id").
 		From("activity_log").
 		OrderBy("timestamp DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset))
+		Limit(uint64(limit)).  //nolint:gosec // limit from user input, safe for test usage
+		Offset(uint64(offset)) //nolint:gosec // offset from user input, safe for test usage
 
 	if filter != "" {
 		b = b.Where(sq.Eq{"type": filter})

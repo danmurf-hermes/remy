@@ -73,7 +73,7 @@ func DefaultConfig() *Config {
 			Directory: "~/.remy/personas/",
 		},
 		Interfaces: InterfacesConfig{
-			Telegram: TelegramConfig{
+			Telegram: TelegramConfig{ //nolint:gosec // bot token is a placeholder env var ref
 				Enabled:      false,
 				BotToken:     "${REMY_TELEGRAM_BOT_TOKEN}",
 				AllowedUsers: []string{},
@@ -99,7 +99,7 @@ func ConfigPath() (string, error) {
 }
 
 func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is user-provided config path
 	if err != nil {
 		if os.IsNotExist(err) {
 			return DefaultConfig(), nil
@@ -121,11 +121,11 @@ func SaveConfig(path string, cfg *Config) error {
 	}
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
 	}
 	return nil

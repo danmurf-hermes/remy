@@ -82,7 +82,7 @@ func TestGenerateEmbedding_Success(t *testing.T) {
 				{Embedding: []float64{0.1, 0.2, 0.3, 0.4, 0.5}},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -118,7 +118,7 @@ func TestGenerateEmbedding_ServerError(t *testing.T) {
 
 func TestGenerateEmbedding_EmptyResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(embeddingResponse{Data: []struct {
+		_ = json.NewEncoder(w).Encode(embeddingResponse{Data: []struct {
 			Embedding []float64 `json:"embedding"`
 		}{}})
 	}))
@@ -143,7 +143,7 @@ func TestGenerateEmbedding_Timeout(t *testing.T) {
 	cancel()
 	_, err := e.GenerateEmbedding(ctx, "test")
 	if err == nil {
-		t.Fatal("expected error for cancelled context, got nil")
+		t.Fatal("expected error for canceled context, got nil")
 	}
 }
 
@@ -163,7 +163,7 @@ func TestSaveMessageVector(t *testing.T) {
 		ID: uuid.NewString(), UserID: "u1", Role: "user",
 		Content: "test", Timestamp: 1000, Interface: "gui",
 	}
-	if err := s.SaveMessage(ctx, msg); err != nil {
+	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("SaveMessage: %v", err)
 	}
 
@@ -185,7 +185,7 @@ func TestSaveEpisodeVector(t *testing.T) {
 		ID: uuid.NewString(), Summary: "test",
 		StartTime: 1000, EndTime: 2000, MessageIDs: "[]",
 	}
-	if err := s.SaveEpisode(ctx, ep); err != nil {
+	if err := s.SaveEpisode(ctx, &ep); err != nil {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
 
@@ -207,7 +207,7 @@ func TestSearchEpisodes(t *testing.T) {
 		ID: uuid.NewString(), Summary: "user asked about Go programming",
 		StartTime: 1000, EndTime: 2000, MessageIDs: "[]", Importance: 0.8,
 	}
-	if err := s.SaveEpisode(ctx, ep); err != nil {
+	if err := s.SaveEpisode(ctx, &ep); err != nil {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
 
@@ -241,7 +241,7 @@ func TestSearchFacts(t *testing.T) {
 		ID: uuid.NewString(), Fact: "user prefers Go over Python",
 		Category: "preference", Confidence: 0.9, CreatedAt: now, UpdatedAt: now,
 	}
-	if err := s.SaveFact(ctx, fact); err != nil {
+	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
@@ -275,7 +275,7 @@ func TestSaveFactVector(t *testing.T) {
 		ID: uuid.NewString(), Fact: "test fact",
 		Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
-	if err := s.SaveFact(ctx, fact); err != nil {
+	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
 

@@ -18,7 +18,7 @@ func newTestStore(t *testing.T) *Store {
 	if err != nil {
 		t.Fatalf("NewStore(%q): %v", dbPath, err)
 	}
-	t.Cleanup(func() { s.Close() })
+	t.Cleanup(func() { _ = s.Close() })
 	return s
 }
 
@@ -29,7 +29,7 @@ func TestNewStore_CreatesDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewStore: %v", err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		t.Fatal("database file was not created")
@@ -49,7 +49,7 @@ func TestStore_Close(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 	// closing again should be safe
-	s.Close()
+	_ = s.Close()
 }
 
 func TestStore_DB(t *testing.T) {
@@ -73,7 +73,7 @@ func TestSaveAndGetMessage(t *testing.T) {
 		SessionID: "session1",
 	}
 
-	if err := s.SaveMessage(ctx, msg); err != nil {
+	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("SaveMessage: %v", err)
 	}
 
@@ -114,7 +114,7 @@ func TestGetMessages(t *testing.T) {
 			Timestamp: int64(1000 + i),
 			Interface: "gui",
 		}
-		if err := s.SaveMessage(ctx, msg); err != nil {
+		if err := s.SaveMessage(ctx, &msg); err != nil {
 			t.Fatalf("SaveMessage: %v", err)
 		}
 	}
@@ -150,7 +150,7 @@ func TestGetMessagesBySession(t *testing.T) {
 			Interface: "gui",
 			SessionID: "session-a",
 		}
-		if err := s.SaveMessage(ctx, msg); err != nil {
+		if err := s.SaveMessage(ctx, &msg); err != nil {
 			t.Fatalf("SaveMessage: %v", err)
 		}
 	}
@@ -165,7 +165,7 @@ func TestGetMessagesBySession(t *testing.T) {
 		Interface: "gui",
 		SessionID: "session-b",
 	}
-	if err := s.SaveMessage(ctx, other); err != nil {
+	if err := s.SaveMessage(ctx, &other); err != nil {
 		t.Fatalf("SaveMessage: %v", err)
 	}
 
@@ -192,7 +192,7 @@ func TestSaveAndGetEpisode(t *testing.T) {
 		Topics:     `["programming","comparison"]`,
 	}
 
-	if err := s.SaveEpisode(ctx, ep); err != nil {
+	if err := s.SaveEpisode(ctx, &ep); err != nil {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
 
@@ -222,7 +222,7 @@ func TestGetEpisodes(t *testing.T) {
 			MessageIDs: "[]",
 			Importance: 0.5,
 		}
-		if err := s.SaveEpisode(ctx, ep); err != nil {
+		if err := s.SaveEpisode(ctx, &ep); err != nil {
 			t.Fatalf("SaveEpisode: %v", err)
 		}
 	}
@@ -246,8 +246,8 @@ func TestGetEpisodesByTimeRange(t *testing.T) {
 		{ID: uuid.NewString(), Summary: "late", StartTime: 500, EndTime: 600, MessageIDs: "[]", Importance: 0.5},
 	}
 
-	for _, ep := range episodes {
-		if err := s.SaveEpisode(ctx, ep); err != nil {
+	for i := range episodes {
+		if err := s.SaveEpisode(ctx, &episodes[i]); err != nil {
 			t.Fatalf("SaveEpisode: %v", err)
 		}
 	}
@@ -279,7 +279,7 @@ func TestSaveAndGetFact(t *testing.T) {
 		UpdatedAt:  now,
 	}
 
-	if err := s.SaveFact(ctx, fact); err != nil {
+	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
@@ -307,8 +307,8 @@ func TestGetFactsByCategory(t *testing.T) {
 		{ID: uuid.NewString(), Fact: "name is Dan", Category: "personal_info", Confidence: 0.9, CreatedAt: now, UpdatedAt: now},
 	}
 
-	for _, f := range facts {
-		if err := s.SaveFact(ctx, f); err != nil {
+	for i := range facts {
+		if err := s.SaveFact(ctx, &facts[i]); err != nil {
 			t.Fatalf("SaveFact: %v", err)
 		}
 	}
@@ -336,7 +336,7 @@ func TestUpdateFact(t *testing.T) {
 		UpdatedAt:  now,
 	}
 
-	if err := s.SaveFact(ctx, fact); err != nil {
+	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
@@ -344,7 +344,7 @@ func TestUpdateFact(t *testing.T) {
 	fact.Confidence = 0.9
 	fact.UpdatedAt = time.Now().UnixMilli()
 
-	if err := s.UpdateFact(ctx, fact); err != nil {
+	if err := s.UpdateFact(ctx, &fact); err != nil {
 		t.Fatalf("UpdateFact: %v", err)
 	}
 
@@ -371,7 +371,7 @@ func TestDeleteFact(t *testing.T) {
 		Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
 
-	if err := s.SaveFact(ctx, fact); err != nil {
+	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
@@ -462,7 +462,7 @@ func TestSaveAndGetRelationship(t *testing.T) {
 		CreatedAt:    now,
 	}
 
-	if err := s.SaveRelationship(ctx, rel); err != nil {
+	if err := s.SaveRelationship(ctx, &rel); err != nil {
 		t.Fatalf("SaveRelationship: %v", err)
 	}
 
@@ -520,7 +520,7 @@ func TestActivityLog(t *testing.T) {
 		SessionID: "session1",
 	}
 
-	if err := s.LogActivity(ctx, entry); err != nil {
+	if err := s.LogActivity(ctx, &entry); err != nil {
 		t.Fatalf("LogActivity: %v", err)
 	}
 
@@ -547,8 +547,8 @@ func TestActivityLog_Filtered(t *testing.T) {
 		{ID: uuid.NewString(), Timestamp: now + 2, Type: "message_received", Details: "{}"},
 	}
 
-	for _, e := range entries {
-		if err := s.LogActivity(ctx, e); err != nil {
+	for i := range entries {
+		if err := s.LogActivity(ctx, &entries[i]); err != nil {
 			t.Fatalf("LogActivity: %v", err)
 		}
 	}
@@ -572,7 +572,7 @@ func TestGetFacts(t *testing.T) {
 			ID: uuid.NewString(), Fact: "fact " + string(rune('0'+i)),
 			Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 		}
-		if err := s.SaveFact(ctx, f); err != nil {
+		if err := s.SaveFact(ctx, &f); err != nil {
 			t.Fatalf("SaveFact: %v", err)
 		}
 	}
@@ -595,12 +595,12 @@ func TestDuplicateMessageID(t *testing.T) {
 		Content: "first", Timestamp: 1000, Interface: "gui",
 	}
 
-	if err := s.SaveMessage(ctx, msg); err != nil {
+	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("first SaveMessage: %v", err)
 	}
 
 	msg.Content = "second"
-	if err := s.SaveMessage(ctx, msg); err == nil {
+	if err := s.SaveMessage(ctx, &msg); err == nil {
 		t.Fatal("expected error for duplicate ID, got nil")
 	}
 }
@@ -619,7 +619,7 @@ func TestLargeContent(t *testing.T) {
 		Content: string(large), Timestamp: 1000, Interface: "gui",
 	}
 
-	if err := s.SaveMessage(ctx, msg); err != nil {
+	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("SaveMessage with large content: %v", err)
 	}
 
