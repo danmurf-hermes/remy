@@ -52,7 +52,7 @@ func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 	if err != nil {
 		return nil, fmt.Errorf("chat request: %w", err)
 	}
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 
 	var resp ChatResponse
 	if err := json.NewDecoder(body).Decode(&resp); err != nil {
@@ -79,7 +79,7 @@ func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan 
 
 	ch := make(chan StreamChunk, 64)
 	go func() {
-		defer body.Close()
+		defer func() { _ = body.Close() }()
 		defer close(ch)
 
 		scanner := bufio.NewScanner(body)
@@ -124,7 +124,7 @@ func (c *OllamaClient) Embed(ctx context.Context, text string) ([]float32, error
 	if err != nil {
 		return nil, fmt.Errorf("embed request: %w", err)
 	}
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 
 	var resp embedResponse
 	if err := json.NewDecoder(body).Decode(&resp); err != nil {
@@ -166,7 +166,7 @@ func (c *OllamaClient) doRequest(ctx context.Context, method, url string, reqBod
 
 	if httpResp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(httpResp.Body)
-		httpResp.Body.Close()
+		_ = httpResp.Body.Close()
 		return nil, fmt.Errorf("unexpected status %d: %s", httpResp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
