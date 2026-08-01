@@ -92,41 +92,41 @@ Every push runs:
 **Goal:** Implement the full SQLite database layer with schema, migrations, vector support, and all CRUD operations. This is the foundation everything else depends on.
 
 **Tasks:**
-- [ ] Add `mattn/go-sqlite3` and `asg017/sqlite-vec-go` dependencies
-- [ ] Create `internal/memory/store.go`:
+- [x] Add `mattn/go-sqlite3` and `asg017/sqlite-vec-go` dependencies
+- [x] Create `internal/memory/store.go`:
   - `NewStore(dbPath string) (*Store, error)` — opens/creates DB, runs migrations
   - Auto-creates all tables from ARCHITECTURE.md §3.2 and §3.3
   - WAL mode for concurrent reads
-- [ ] Create `internal/memory/messages.go`:
+- [x] Create `internal/memory/messages.go`:
   - `SaveMessage(ctx, Message) error`
   - `GetMessages(ctx, limit, offset) ([]Message, error)`
   - `GetMessagesBySession(ctx, sessionID) ([]Message, error)`
   - `GetMessage(ctx, id) (Message, error)`
-- [ ] Create `internal/memory/episodic.go`:
+- [x] Create `internal/memory/episodic.go`:
   - `SaveEpisode(ctx, Episode) error`
   - `SearchEpisodes(ctx, embedding, limit) ([]Episode, error)`
   - `GetEpisodesByTimeRange(ctx, start, end) ([]Episode, error)`
-- [ ] Create `internal/memory/semantic.go`:
+- [x] Create `internal/memory/semantic.go`:
   - `SaveFact(ctx, Fact) error`
   - `SearchFacts(ctx, embedding, limit) ([]Fact, error)`
   - `GetFactsByCategory(ctx, category) ([]Fact, error)`
   - `UpdateFact(ctx, Fact) error`
   - `SaveEntity(ctx, Entity) error`
   - `SaveRelationship(ctx, Relationship) error`
-- [ ] Create `internal/memory/scratchpad.go`:
+- [x] Create `internal/memory/scratchpad.go`:
   - `GetScratchpad(ctx) (string, error)`
   - `UpdateScratchpad(ctx, content) error`
-- [ ] Create `internal/memory/activity.go`:
+- [x] Create `internal/memory/activity.go`:
   - `LogActivity(ctx, ActivityEntry) error`
   - `GetActivityLog(ctx, filter, limit, offset) ([]ActivityEntry, error)`
-- [ ] Create `internal/memory/vectors.go`:
+- [x] Create `internal/memory/vectors.go`:
   - `GenerateEmbedding(ctx, text) ([]float32, error)` — calls Ollama embedding API
   - Helper functions for inserting/searching vec0 virtual tables
-- [ ] Create `internal/memory/store_test.go`:
+- [x] Create `internal/memory/store_test.go`:
   - Table-driven tests for every CRUD operation
   - Use `t.TempDir()` for isolated test databases
   - Test edge cases: empty results, duplicate IDs, large content
-- [ ] Create `internal/memory/vectors_test.go`:
+- [x] Create `internal/memory/vectors_test.go`:
   - Test embedding generation (mock the HTTP call)
   - Test vector search with known embeddings
 
@@ -138,6 +138,10 @@ Every push runs:
 - Vectors can be stored and searched
 
 **Notes for next person:**
+- Uses `golang-migrate/migrate/v4` with embedded SQL migration files in `internal/memory/migrations/`. To add a new migration, create `000003_<name>.up.sql` and `000003_<name>.down.sql` in that directory.
+- The vec0 virtual tables require exactly 768-dimensional embeddings (matching `nomic-embed-text`). The `k` parameter is implicit via `LIMIT` in the subquery pattern used for vector search.
+- Migrations run on a separate database connection to avoid the `migrate` sqlite3 driver closing the main connection.
+- 31 tests, 85.8% coverage on `internal/memory/`.
 
 ---
 
