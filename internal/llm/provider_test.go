@@ -1,9 +1,10 @@
-package llm
+package llm_test
 
 import (
 	"testing"
 
-	"github.com/yourname/remy/internal/config"
+	"github.com/danmurf/remy/internal/config"
+	"github.com/danmurf/remy/internal/llm"
 )
 
 func TestNewProvider(t *testing.T) {
@@ -69,7 +70,7 @@ func TestNewProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewProvider(tt.cfg)
+			p, err := llm.NewProvider(tt.cfg)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -82,25 +83,25 @@ func TestNewProvider(t *testing.T) {
 			if p == nil {
 				t.Fatal("provider is nil")
 			}
-			client, ok := p.(*OllamaClient)
+			client, ok := p.(*llm.OllamaClient)
 			if !ok {
 				t.Fatalf("expected *OllamaClient, got %T", p)
 			}
-			if client.endpoint != tt.cfg.Endpoint {
-				t.Errorf("endpoint = %q, want %q", client.endpoint, tt.cfg.Endpoint)
+			if client.Endpoint != tt.cfg.Endpoint {
+				t.Errorf("endpoint = %q, want %q", client.Endpoint, tt.cfg.Endpoint)
 			}
-			if client.chatModel != tt.cfg.ChatModel {
-				t.Errorf("chatModel = %q, want %q", client.chatModel, tt.cfg.ChatModel)
+			if client.ChatModel != tt.cfg.ChatModel {
+				t.Errorf("chatModel = %q, want %q", client.ChatModel, tt.cfg.ChatModel)
 			}
-			if client.embeddingModel != tt.cfg.EmbeddingModel {
-				t.Errorf("embeddingModel = %q, want %q", client.embeddingModel, tt.cfg.EmbeddingModel)
+			if client.EmbeddingModel != tt.cfg.EmbeddingModel {
+				t.Errorf("embeddingModel = %q, want %q", client.EmbeddingModel, tt.cfg.EmbeddingModel)
 			}
-			if tt.cfg.APIKey != "" && client.apiKey != tt.cfg.APIKey {
-				t.Errorf("apiKey = %q, want %q", client.apiKey, tt.cfg.APIKey)
+			if tt.cfg.APIKey != "" && client.APIKey != tt.cfg.APIKey {
+				t.Errorf("apiKey = %q, want %q", client.APIKey, tt.cfg.APIKey)
 			}
 			if tt.cfg.Parameters != nil {
-				if client.parameters["temperature"] != tt.cfg.Parameters["temperature"] {
-					t.Errorf("temperature = %v, want %v", client.parameters["temperature"], tt.cfg.Parameters["temperature"])
+				if client.Parameters["temperature"] != tt.cfg.Parameters["temperature"] {
+					t.Errorf("temperature = %v, want %v", client.Parameters["temperature"], tt.cfg.Parameters["temperature"])
 				}
 			}
 		})

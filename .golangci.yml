@@ -50,6 +50,7 @@ linters:
         - name: confusing-results
         - name: exported
         - name: package-comments
+        - name: test-package-naming
     misspell:
       locale: US
     prealloc:

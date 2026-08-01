@@ -1,4 +1,4 @@
-package memory
+package memory_test
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/danmurf/remy/internal/memory"
 )
 
-func newTestStore(t *testing.T) *Store {
+func newTestStore(t *testing.T) *memory.Store {
 	t.Helper()
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "test.db")
-	s, err := NewStore(dbPath)
+	s, err := memory.NewStore(dbPath)
 	if err != nil {
 		t.Fatalf("NewStore(%q): %v", dbPath, err)
 	}
@@ -26,7 +27,7 @@ func TestNewStore(t *testing.T) {
 	t.Run("creates database", func(t *testing.T) {
 		dir := t.TempDir()
 		dbPath := filepath.Join(dir, "memory.db")
-		s, err := NewStore(dbPath)
+		s, err := memory.NewStore(dbPath)
 		if err != nil {
 			t.Fatalf("NewStore: %v", err)
 		}
@@ -37,7 +38,7 @@ func TestNewStore(t *testing.T) {
 	})
 
 	t.Run("invalid path", func(t *testing.T) {
-		_, err := NewStore("/nonexistent/dir/memory.db")
+		_, err := memory.NewStore("/nonexistent/dir/memory.db")
 		if err == nil {
 			t.Fatal("expected error for invalid path, got nil")
 		}
@@ -63,7 +64,7 @@ func TestSaveAndGetMessage(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	msg := Message{
+	msg := memory.Message{
 		ID: uuid.NewString(), UserID: "user1", Role: "user",
 		Content: "Hello, Remy!", Timestamp: time.Now().UnixMilli(),
 		Interface: "gui", SessionID: "session1",
@@ -99,7 +100,7 @@ func TestGetMessages(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 5; i++ {
-		msg := Message{
+		msg := memory.Message{
 			ID: uuid.NewString(), UserID: "user1", Role: "user",
 			Content: "Message " + string(rune('0'+i)),
 			Timestamp: int64(1000 + i), Interface: "gui",
@@ -131,7 +132,7 @@ func TestGetMessagesBySession(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		msg := Message{
+		msg := memory.Message{
 			ID: uuid.NewString(), UserID: "user1", Role: "user",
 			Content: "Session msg " + string(rune('0'+i)),
 			Timestamp: int64(1000 + i), Interface: "gui", SessionID: "session-a",
@@ -140,7 +141,7 @@ func TestGetMessagesBySession(t *testing.T) {
 			t.Fatalf("SaveMessage: %v", err)
 		}
 	}
-	other := Message{
+	other := memory.Message{
 		ID: uuid.NewString(), UserID: "user1", Role: "user",
 		Content: "Other session", Timestamp: 2000, Interface: "gui", SessionID: "session-b",
 	}
@@ -161,7 +162,7 @@ func TestSaveAndGetEpisode(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	ep := Episode{
+	ep := memory.Episode{
 		ID: uuid.NewString(), Summary: "User asked about Go vs Python",
 		StartTime: 1000, EndTime: 2000, MessageIDs: `["msg1","msg2"]`,
 		Importance: 0.8, Topics: `["programming","comparison"]`,
@@ -194,7 +195,7 @@ func TestGetEpisodes(t *testing.T) {
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		ep := Episode{
+		ep := memory.Episode{
 			ID: uuid.NewString(), Summary: "Episode " + string(rune('0'+i)),
 			StartTime: int64(1000 + i*100), EndTime: int64(2000 + i*100),
 			MessageIDs: "[]", Importance: 0.5,
@@ -217,7 +218,7 @@ func TestGetEpisodesByTimeRange(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	eps := []Episode{
+	eps := []memory.Episode{
 		{ID: uuid.NewString(), Summary: "early", StartTime: 100, EndTime: 200, MessageIDs: "[]", Importance: 0.5},
 		{ID: uuid.NewString(), Summary: "middle", StartTime: 300, EndTime: 400, MessageIDs: "[]", Importance: 0.5},
 		{ID: uuid.NewString(), Summary: "late", StartTime: 500, EndTime: 600, MessageIDs: "[]", Importance: 0.5},
@@ -245,7 +246,7 @@ func TestSaveAndGetFact(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	fact := Fact{
+	fact := memory.Fact{
 		ID: uuid.NewString(), Fact: "User prefers async/await over callbacks",
 		Category: "preference", Confidence: 0.9, Source: "episode:abc",
 		CreatedAt: now, UpdatedAt: now,
@@ -278,7 +279,7 @@ func TestGetFactsByCategory(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	facts := []Fact{
+	facts := []memory.Fact{
 		{ID: uuid.NewString(), Fact: "likes Go", Category: "preference", Confidence: 0.8, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.NewString(), Fact: "likes Python", Category: "preference", Confidence: 0.7, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.NewString(), Fact: "name is Dan", Category: "personal_info", Confidence: 0.9, CreatedAt: now, UpdatedAt: now},
@@ -303,7 +304,7 @@ func TestUpdateFact(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	fact := Fact{
+	fact := memory.Fact{
 		ID: uuid.NewString(), Fact: "User likes Go",
 		Category: "preference", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
@@ -335,7 +336,7 @@ func TestDeleteFact(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	fact := Fact{
+	fact := memory.Fact{
 		ID: uuid.NewString(), Fact: "to delete", Category: "test",
 		Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
@@ -357,7 +358,7 @@ func TestGetFacts(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 	for i := 0; i < 5; i++ {
-		f := Fact{
+		f := memory.Fact{
 			ID: uuid.NewString(), Fact: "fact " + string(rune('0'+i)),
 			Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 		}
@@ -379,7 +380,7 @@ func TestSaveAndGetEntity(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	entity := Entity{
+	entity := memory.Entity{
 		ID: uuid.NewString(), Name: "Go", Type: "language",
 		Description: "A statically typed compiled programming language",
 		CreatedAt:   time.Now().UnixMilli(),
@@ -411,7 +412,7 @@ func TestGetEntities(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	entities := []Entity{
+	entities := []memory.Entity{
 		{ID: uuid.NewString(), Name: "Go", Type: "language", CreatedAt: 1000},
 		{ID: uuid.NewString(), Name: "Python", Type: "language", CreatedAt: 2000},
 	}
@@ -446,8 +447,8 @@ func TestSaveAndGetRelationship(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	e1 := Entity{ID: uuid.NewString(), Name: "Dan", Type: "person", CreatedAt: now}
-	e2 := Entity{ID: uuid.NewString(), Name: "Go", Type: "language", CreatedAt: now}
+	e1 := memory.Entity{ID: uuid.NewString(), Name: "Dan", Type: "person", CreatedAt: now}
+	e2 := memory.Entity{ID: uuid.NewString(), Name: "Go", Type: "language", CreatedAt: now}
 	if err := s.SaveEntity(ctx, e1); err != nil {
 		t.Fatalf("SaveEntity: %v", err)
 	}
@@ -455,7 +456,7 @@ func TestSaveAndGetRelationship(t *testing.T) {
 		t.Fatalf("SaveEntity: %v", err)
 	}
 
-	rel := Relationship{
+	rel := memory.Relationship{
 		ID: uuid.NewString(), SourceEntity: e1.ID, TargetEntity: e2.ID,
 		Relationship: "uses", Confidence: 0.9, CreatedAt: now,
 	}
@@ -531,7 +532,7 @@ func TestActivityLog(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	entry := ActivityEntry{
+	entry := memory.ActivityEntry{
 		ID: uuid.NewString(), Timestamp: time.Now().UnixMilli(),
 		Type: "message_received", Details: `{"content": "hello"}`,
 		MessageID: "msg1", SessionID: "session1",
@@ -557,7 +558,7 @@ func TestActivityLog_Filtered(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UnixMilli()
-	entries := []ActivityEntry{
+	entries := []memory.ActivityEntry{
 		{ID: uuid.NewString(), Timestamp: now, Type: "message_received", Details: "{}"},
 		{ID: uuid.NewString(), Timestamp: now + 1, Type: "llm_request", Details: "{}"},
 		{ID: uuid.NewString(), Timestamp: now + 2, Type: "message_received", Details: "{}"},
@@ -581,7 +582,7 @@ func TestDuplicateMessageID(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	msg := Message{
+	msg := memory.Message{
 		ID: "dup-id", UserID: "u1", Role: "user",
 		Content: "first", Timestamp: 1000, Interface: "gui",
 	}
@@ -602,7 +603,7 @@ func TestLargeContent(t *testing.T) {
 	for i := range large {
 		large[i] = 'a' + byte(i%26)
 	}
-	msg := Message{
+	msg := memory.Message{
 		ID: uuid.NewString(), UserID: "u1", Role: "user",
 		Content: string(large), Timestamp: 1000, Interface: "gui",
 	}

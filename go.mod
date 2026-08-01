@@ -1,4 +1,4 @@
-module github.com/yourname/remy
+module github.com/danmurf/remy
 
 go 1.26.5
 

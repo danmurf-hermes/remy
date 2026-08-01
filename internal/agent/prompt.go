@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yourname/remy/internal/llm"
-	"github.com/yourname/remy/internal/memory"
+	"github.com/danmurf/remy/internal/llm"
+	"github.com/danmurf/remy/internal/memory"
 )
 
 // PromptInput holds all the data needed to build a prompt for the LLM.

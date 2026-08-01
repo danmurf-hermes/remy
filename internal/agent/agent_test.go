@@ -1,4 +1,4 @@
-package agent
+package agent_test
 
 import (
 	"context"
@@ -7,17 +7,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/remy/internal/agent/mock_agent"
-	"github.com/yourname/remy/internal/llm"
-	"github.com/yourname/remy/internal/llm/mock_llm"
-	"github.com/yourname/remy/internal/memory"
+	"github.com/danmurf/remy/internal/agent"
+	"github.com/danmurf/remy/internal/agent/mock_agent"
+	"github.com/danmurf/remy/internal/llm"
+	"github.com/danmurf/remy/internal/llm/mock_llm"
+	"github.com/danmurf/remy/internal/memory"
 	"go.uber.org/mock/gomock"
 )
 
-func newTestAgent(store Store, provider llm.Provider, embedder Embedder) *Agent {
-	cfg := DefaultConfig()
+func newTestAgent(store agent.Store, provider llm.Provider, embedder agent.Embedder) *agent.Agent {
+	cfg := agent.DefaultConfig()
 	cfg.WorkingMemoryTurns = 20
-	return NewAgent(store, provider, embedder, cfg)
+	return agent.NewAgent(store, provider, embedder, cfg)
 }
 
 func TestAgent_NewAgent(t *testing.T) {
@@ -27,16 +28,16 @@ func TestAgent_NewAgent(t *testing.T) {
 	store := mock_agent.NewMockStore(ctrl)
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
-	cfg := DefaultConfig()
+	cfg := agent.DefaultConfig()
 
-	agent := NewAgent(store, provider, embedder, cfg)
+	agent := agent.NewAgent(store, provider, embedder, cfg)
 	if agent == nil {
 		t.Fatal("expected non-nil agent")
 	}
 }
 
 func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
+	cfg := agent.DefaultConfig()
 	if cfg.WorkingMemoryTurns != 20 {
 		t.Errorf("expected WorkingMemoryTurns=20, got %d", cfg.WorkingMemoryTurns)
 	}
@@ -55,7 +56,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 	tests := []struct {
 		name       string
 		userMsg    string
-		cfg        Config
+		cfg        agent.Config
 		mock       func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder)
 		wantErr    bool
 		wantRole   string
@@ -229,7 +230,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "custom config",
 			userMsg: "Hello from Telegram!",
-			cfg:     Config{WorkingMemoryTurns: 5, UserID: "test-user", SessionID: "test-session", Interface: "telegram"},
+			cfg:     agent.Config{WorkingMemoryTurns: 5, UserID: "test-user", SessionID: "test-session", Interface: "telegram"},
 			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
@@ -442,11 +443,11 @@ func TestAgent_HandleMessage(t *testing.T) {
 
 			tt.mock(store, provider, embedder)
 
-			cfg := DefaultConfig()
-			if tt.cfg != (Config{}) {
+			cfg := agent.DefaultConfig()
+			if tt.cfg != (agent.Config{}) {
 				cfg = tt.cfg
 			}
-			agent := NewAgent(store, provider, embedder, cfg)
+			agent := agent.NewAgent(store, provider, embedder, cfg)
 
 			resp, err := agent.HandleMessage(context.Background(), tt.userMsg)
 			if tt.wantErr {
@@ -535,7 +536,8 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	agent := newTestAgent(store, provider, embedder)
+	cfg := agent.DefaultConfig()
+	agent := agent.NewAgent(store, provider, embedder, cfg)
 
 	resp1, err := agent.HandleMessage(context.Background(), "First message")
 	if err != nil {
@@ -557,37 +559,37 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 func TestBuildPrompt(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    *PromptInput
+		input    *agent.PromptInput
 		wantN    int
 		wantLast string
 	}{
 		{
 			name:     "no context",
-			input:    &PromptInput{UserMessage: "hello"},
+			input:    &agent.PromptInput{UserMessage: "hello"},
 			wantN:    2,
 			wantLast: "hello",
 		},
 		{
 			name:     "with scratchpad",
-			input:    &PromptInput{Scratchpad: "Remember: user likes Go", UserMessage: "hello"},
+			input:    &agent.PromptInput{Scratchpad: "Remember: user likes Go", UserMessage: "hello"},
 			wantN:    2,
 			wantLast: "hello",
 		},
 		{
 			name:     "with episodes",
-			input:    &PromptInput{Episodes: []memory.Episode{{Summary: "User asked about Go", Importance: 0.8}}, UserMessage: "hello"},
+			input:    &agent.PromptInput{Episodes: []memory.Episode{{Summary: "User asked about Go", Importance: 0.8}}, UserMessage: "hello"},
 			wantN:    2,
 			wantLast: "hello",
 		},
 		{
 			name:     "with facts",
-			input:    &PromptInput{Facts: []memory.Fact{{Fact: "User prefers Go", Category: "preference", Confidence: 0.9}}, UserMessage: "hello"},
+			input:    &agent.PromptInput{Facts: []memory.Fact{{Fact: "User prefers Go", Category: "preference", Confidence: 0.9}}, UserMessage: "hello"},
 			wantN:    2,
 			wantLast: "hello",
 		},
 		{
 			name: "with recent messages",
-			input: &PromptInput{
+			input: &agent.PromptInput{
 				RecentMessages: []memory.Message{
 					{Role: "user", Content: "prev question"},
 					{Role: "assistant", Content: "prev answer"},
@@ -599,7 +601,7 @@ func TestBuildPrompt(t *testing.T) {
 		},
 		{
 			name: "all context types",
-			input: &PromptInput{
+			input: &agent.PromptInput{
 				Scratchpad: "working notes",
 				Episodes:   []memory.Episode{{Summary: "past convo", Importance: 0.7}},
 				Facts:      []memory.Fact{{Fact: "user fact", Category: "general", Confidence: 0.8}},
@@ -615,7 +617,7 @@ func TestBuildPrompt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := BuildPrompt(tt.input)
+			result := agent.BuildPrompt(tt.input)
 			if len(result.Messages) != tt.wantN {
 				t.Fatalf("got %d messages, want %d", len(result.Messages), tt.wantN)
 			}

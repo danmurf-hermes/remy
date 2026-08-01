@@ -1,4 +1,4 @@
-package llm
+package llm_test
 
 import (
 	"context"
@@ -8,20 +8,22 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/danmurf/remy/internal/llm"
 )
 
 func TestNewOllamaClient(t *testing.T) {
-	c := NewOllamaClient("http://localhost:11434/v1", "", "llama3.1:8b", "nomic-embed-text", nil)
-	if c.endpoint != "http://localhost:11434/v1" {
-		t.Errorf("endpoint = %q, want %q", c.endpoint, "http://localhost:11434/v1")
+	c := llm.NewOllamaClient("http://localhost:11434/v1", "", "llama3.1:8b", "nomic-embed-text", nil)
+	if c.Endpoint != "http://localhost:11434/v1" {
+		t.Errorf("endpoint = %q, want %q", c.Endpoint, "http://localhost:11434/v1")
 	}
-	if c.chatModel != "llama3.1:8b" {
-		t.Errorf("chatModel = %q, want %q", c.chatModel, "llama3.1:8b")
+	if c.ChatModel != "llama3.1:8b" {
+		t.Errorf("chatModel = %q, want %q", c.ChatModel, "llama3.1:8b")
 	}
-	if c.embeddingModel != "nomic-embed-text" {
-		t.Errorf("embeddingModel = %q, want %q", c.embeddingModel, "nomic-embed-text")
+	if c.EmbeddingModel != "nomic-embed-text" {
+		t.Errorf("embeddingModel = %q, want %q", c.EmbeddingModel, "nomic-embed-text")
 	}
-	if c.httpClient == nil {
+	if c.HTTPClient == nil {
 		t.Fatal("httpClient is nil")
 	}
 }
@@ -30,7 +32,7 @@ func TestChat(t *testing.T) {
 	tests := []struct {
 		name    string
 		handler func(w http.ResponseWriter, r *http.Request)
-		req     ChatRequest
+		req     llm.ChatRequest
 		wantErr bool
 	}{
 		{
@@ -42,7 +44,7 @@ func TestChat(t *testing.T) {
 				if !strings.HasSuffix(r.URL.Path, "/chat/completions") {
 					t.Errorf("path = %s, want /chat/completions", r.URL.Path)
 				}
-				var req ChatRequest
+				var req llm.ChatRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					t.Fatalf("decoding request: %v", err)
 				}
@@ -55,20 +57,20 @@ func TestChat(t *testing.T) {
 				if len(req.Messages) != 1 || req.Messages[0].Content != "hello" {
 					t.Errorf("messages = %v, want [hello]", req.Messages)
 				}
-				_ = json.NewEncoder(w).Encode(ChatResponse{
+				_ = json.NewEncoder(w).Encode(llm.ChatResponse{
 					ID: "chat-1", Object: "chat.completion",
-					Choices: []Choice{{Index: 0, Message: Message{Role: "assistant", Content: "Hi there!"}, FinishReason: "stop"}},
-					Usage:   Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
+					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Hi there!"}, FinishReason: "stop"}},
+					Usage:   llm.Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
 				})
 			},
-			req: ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req: llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 		},
 		{
 			name: "empty choices",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				_ = json.NewEncoder(w).Encode(ChatResponse{ID: "chat-1", Object: "chat.completion", Choices: []Choice{}})
+				_ = json.NewEncoder(w).Encode(llm.ChatResponse{ID: "chat-1", Object: "chat.completion", Choices: []llm.Choice{}})
 			},
-			req:     ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 			wantErr: true,
 		},
 		{
@@ -77,7 +79,7 @@ func TestChat(t *testing.T) {
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte("internal error"))
 			},
-			req:     ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 			wantErr: true,
 		},
 		{
@@ -85,7 +87,7 @@ func TestChat(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				<-r.Context().Done()
 			},
-			req:     ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 			wantErr: true,
 		},
 		{
@@ -93,7 +95,7 @@ func TestChat(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				_, _ = w.Write([]byte(`{invalid json`))
 			},
-			req:     ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 			wantErr: true,
 		},
 		{
@@ -103,27 +105,27 @@ func TestChat(t *testing.T) {
 				if auth != "Bearer test-key-123" {
 					t.Errorf("Authorization = %q, want %q", auth, "Bearer test-key-123")
 				}
-				_ = json.NewEncoder(w).Encode(ChatResponse{
-					Choices: []Choice{{Message: Message{Role: "assistant", Content: "ok"}}},
+				_ = json.NewEncoder(w).Encode(llm.ChatResponse{
+					Choices: []llm.Choice{{Message: llm.Message{Role: "assistant", Content: "ok"}}},
 				})
 			},
-			req: ChatRequest{Messages: []Message{{Role: "user", Content: "hello"}}},
+			req: llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 		},
 		{
 			name: "model override",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				var req ChatRequest
+				var req llm.ChatRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					t.Fatalf("decoding request: %v", err)
 				}
 				if req.Model != "custom-model" {
 					t.Errorf("model = %q, want %q", req.Model, "custom-model")
 				}
-				_ = json.NewEncoder(w).Encode(ChatResponse{
-					Choices: []Choice{{Message: Message{Role: "assistant", Content: "ok"}}},
+				_ = json.NewEncoder(w).Encode(llm.ChatResponse{
+					Choices: []llm.Choice{{Message: llm.Message{Role: "assistant", Content: "ok"}}},
 				})
 			},
-			req: ChatRequest{Model: "custom-model", Messages: []Message{{Role: "user", Content: "hello"}}},
+			req: llm.ChatRequest{Model: "custom-model", Messages: []llm.Message{{Role: "user", Content: "hello"}}},
 		},
 	}
 
@@ -136,7 +138,7 @@ func TestChat(t *testing.T) {
 			if tt.name == "with API key" {
 				apiKey = "test-key-123"
 			}
-			c := NewOllamaClient(server.URL, apiKey, "llama3.1:8b", "nomic-embed-text", nil)
+			c := llm.NewOllamaClient(server.URL, apiKey, "llama3.1:8b", "nomic-embed-text", nil)
 
 			ctx := context.Background()
 			if tt.name == "timeout" {
@@ -161,7 +163,7 @@ func TestChatStream_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("method = %s, want POST", r.Method)
 		}
-		var req ChatRequest
+		var req llm.ChatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("decoding request: %v", err)
 		}
@@ -170,10 +172,10 @@ func TestChatStream_Success(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
-		chunks := []StreamChunk{
-			{Choices: []StreamChoice{{Delta: Delta{Content: "Hello"}}}},
-			{Choices: []StreamChoice{{Delta: Delta{Content: " world"}}}},
-			{Choices: []StreamChoice{{Delta: Delta{Content: ""}, FinishReason: "stop"}}},
+		chunks := []llm.StreamChunk{
+			{Choices: []llm.StreamChoice{{Delta: llm.Delta{Content: "Hello"}}}},
+			{Choices: []llm.StreamChoice{{Delta: llm.Delta{Content: " world"}}}},
+			{Choices: []llm.StreamChoice{{Delta: llm.Delta{Content: ""}, FinishReason: "stop"}}},
 		}
 		for _, chunk := range chunks {
 			data, _ := json.Marshal(chunk)
@@ -183,9 +185,9 @@ func TestChatStream_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
-	ch, err := c.ChatStream(context.Background(), ChatRequest{
-		Messages: []Message{{Role: "user", Content: "hello"}},
+	c := llm.NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
+	ch, err := c.ChatStream(context.Background(), llm.ChatRequest{
+		Messages: []llm.Message{{Role: "user", Content: "hello"}},
 	})
 	if err != nil {
 		t.Fatalf("ChatStream: %v", err)
@@ -216,9 +218,9 @@ func TestChatStream_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
-	_, err := c.ChatStream(context.Background(), ChatRequest{
-		Messages: []Message{{Role: "user", Content: "hello"}},
+	c := llm.NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
+	_, err := c.ChatStream(context.Background(), llm.ChatRequest{
+		Messages: []llm.Message{{Role: "user", Content: "hello"}},
 	})
 	if err == nil {
 		t.Fatal("expected error for server error, got nil")
@@ -235,7 +237,7 @@ func TestChatStream_CanceledContext(t *testing.T) {
 			return
 		}
 		flusher.Flush()
-		chunk := StreamChunk{Choices: []StreamChoice{{Delta: Delta{Content: "Hello"}}}}
+		chunk := llm.StreamChunk{Choices: []llm.StreamChoice{{Delta: llm.Delta{Content: "Hello"}}}}
 		data, _ := json.Marshal(chunk)
 		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		flusher.Flush()
@@ -244,12 +246,12 @@ func TestChatStream_CanceledContext(t *testing.T) {
 	t.Cleanup(server.Close)
 	t.Cleanup(func() { close(done) })
 
-	c := NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
+	c := llm.NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	ch, err := c.ChatStream(ctx, ChatRequest{
-		Messages: []Message{{Role: "user", Content: "hello"}},
+	ch, err := c.ChatStream(ctx, llm.ChatRequest{
+		Messages: []llm.Message{{Role: "user", Content: "hello"}},
 	})
 	if err != nil {
 		t.Fatalf("ChatStream: %v", err)
@@ -280,7 +282,7 @@ func TestEmbed(t *testing.T) {
 				if !strings.HasSuffix(r.URL.Path, "/embeddings") {
 					t.Errorf("path = %s, want /embeddings", r.URL.Path)
 				}
-				var req embedRequest
+				var req llm.EmbedRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					t.Fatalf("decoding request: %v", err)
 				}
@@ -290,7 +292,7 @@ func TestEmbed(t *testing.T) {
 				if len(req.Input) != 1 || req.Input[0] != "hello world" {
 					t.Errorf("input = %v, want [hello world]", req.Input)
 				}
-				_ = json.NewEncoder(w).Encode(embedResponse{
+				_ = json.NewEncoder(w).Encode(llm.EmbedResponse{
 					Data: []struct {
 						Embedding []float64 `json:"embedding"`
 					}{
@@ -303,7 +305,7 @@ func TestEmbed(t *testing.T) {
 		{
 			name: "empty response",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				_ = json.NewEncoder(w).Encode(embedResponse{Data: []struct {
+				_ = json.NewEncoder(w).Encode(llm.EmbedResponse{Data: []struct {
 					Embedding []float64 `json:"embedding"`
 				}{}})
 			},
@@ -333,7 +335,7 @@ func TestEmbed(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.handler))
 			defer server.Close()
 
-			c := NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
+			c := llm.NewOllamaClient(server.URL, "", "llama3.1:8b", "nomic-embed-text", nil)
 
 			ctx := context.Background()
 			if tt.name == "timeout" {

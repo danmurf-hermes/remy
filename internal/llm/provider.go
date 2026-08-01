@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/yourname/remy/internal/config"
+	"github.com/danmurf/remy/internal/config"
 )
 
 //go:generate go run go.uber.org/mock/mockgen -destination=mock_llm/mock_llm.go -package=mock_llm . Provider
@@ -31,11 +31,11 @@ func NewProvider(cfg config.ProviderConfig) (Provider, error) {
 	}
 
 	return &OllamaClient{
-		endpoint:       cfg.Endpoint,
-		apiKey:         cfg.APIKey,
-		chatModel:      cfg.ChatModel,
-		embeddingModel: cfg.EmbeddingModel,
-		parameters:     cfg.Parameters,
-		httpClient:     defaultHTTPClient(),
+		Endpoint:       cfg.Endpoint,
+		APIKey:         cfg.APIKey,
+		ChatModel:      cfg.ChatModel,
+		EmbeddingModel: cfg.EmbeddingModel,
+		Parameters:     cfg.Parameters,
+		HTTPClient:     defaultHTTPClient(),
 	}, nil
 }

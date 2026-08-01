@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/remy/internal/llm"
-	"github.com/yourname/remy/internal/memory"
+	"github.com/danmurf/remy/internal/llm"
+	"github.com/danmurf/remy/internal/memory"
 )
 
 // Store defines the subset of memory.Store methods the agent needs,

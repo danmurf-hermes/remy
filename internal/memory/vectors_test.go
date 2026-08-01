@@ -1,4 +1,4 @@
-package memory
+package memory_test
 
 import (
 	"context"
@@ -6,17 +6,19 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/danmurf/remy/internal/memory"
 )
 
 func TestSerializeDeserializeVector(t *testing.T) {
 	original := []float32{0.1, 0.2, 0.3, 0.4, 0.5}
-	data, err := SerializeVector(original)
+	data, err := memory.SerializeVector(original)
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
-	got, err := DeserializeVector(data)
+	got, err := memory.DeserializeVector(data)
 	if err != nil {
 		t.Fatalf("DeserializeVector: %v", err)
 	}
@@ -31,7 +33,7 @@ func TestSerializeDeserializeVector(t *testing.T) {
 }
 
 func TestDeserializeVector_Empty(t *testing.T) {
-	got, err := DeserializeVector([]byte{})
+	got, err := memory.DeserializeVector([]byte{})
 	if err != nil {
 		t.Fatalf("DeserializeVector empty: %v", err)
 	}
@@ -41,7 +43,7 @@ func TestDeserializeVector_Empty(t *testing.T) {
 }
 
 func TestNewEmbedder(t *testing.T) {
-	e := NewEmbedder("http://localhost:11434/v1", "nomic-embed-text")
+	e := memory.NewEmbedder("http://localhost:11434/v1", "nomic-embed-text")
 	if e.Endpoint != "http://localhost:11434/v1" {
 		t.Errorf("endpoint = %q, want %q", e.Endpoint, "http://localhost:11434/v1")
 	}
@@ -69,7 +71,7 @@ func TestGenerateEmbedding(t *testing.T) {
 				if r.URL.Path != "/embeddings" {
 					t.Errorf("path = %s, want /embeddings", r.URL.Path)
 				}
-				var req embeddingRequest
+				var req memory.EmbeddingRequest
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					t.Fatalf("decoding request: %v", err)
 				}
@@ -79,7 +81,7 @@ func TestGenerateEmbedding(t *testing.T) {
 				if len(req.Input) != 1 || req.Input[0] != "hello world" {
 					t.Errorf("input = %v, want [hello world]", req.Input)
 				}
-				_ = json.NewEncoder(w).Encode(embeddingResponse{
+				_ = json.NewEncoder(w).Encode(memory.EmbeddingResponse{
 					Data: []struct {
 						Embedding []float64 `json:"embedding"`
 					}{
@@ -100,7 +102,7 @@ func TestGenerateEmbedding(t *testing.T) {
 		{
 			name: "empty response",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				_ = json.NewEncoder(w).Encode(embeddingResponse{Data: []struct {
+				_ = json.NewEncoder(w).Encode(memory.EmbeddingResponse{Data: []struct {
 					Embedding []float64 `json:"embedding"`
 				}{}})
 			},
@@ -122,7 +124,7 @@ func TestGenerateEmbedding(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.handler))
 			defer server.Close()
 
-			e := NewEmbedder(server.URL, "nomic-embed-text")
+			e := memory.NewEmbedder(server.URL, "nomic-embed-text")
 
 			ctx := context.Background()
 			if tt.name == "timeout" {
@@ -166,7 +168,7 @@ func TestSaveMessageVector(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	msg := Message{
+	msg := memory.Message{
 		ID: uuid.NewString(), UserID: "u1", Role: "user",
 		Content: "test", Timestamp: 1000, Interface: "gui",
 	}
@@ -174,7 +176,7 @@ func TestSaveMessageVector(t *testing.T) {
 		t.Fatalf("SaveMessage: %v", err)
 	}
 
-	embedding, err := SerializeVector(make768Vector())
+	embedding, err := memory.SerializeVector(make768Vector())
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
@@ -188,7 +190,7 @@ func TestSaveEpisodeVector(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	ep := Episode{
+	ep := memory.Episode{
 		ID: uuid.NewString(), Summary: "test",
 		StartTime: 1000, EndTime: 2000, MessageIDs: "[]",
 	}
@@ -196,7 +198,7 @@ func TestSaveEpisodeVector(t *testing.T) {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
 
-	embedding, err := SerializeVector(make768Vector())
+	embedding, err := memory.SerializeVector(make768Vector())
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
@@ -210,8 +212,8 @@ func TestSaveFactVector(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	now := now()
-	fact := Fact{
+	now := time.Now().UnixMilli()
+	fact := memory.Fact{
 		ID: uuid.NewString(), Fact: "test fact",
 		Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
@@ -219,7 +221,7 @@ func TestSaveFactVector(t *testing.T) {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
-	embedding, err := SerializeVector(make768Vector())
+	embedding, err := memory.SerializeVector(make768Vector())
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
@@ -233,7 +235,7 @@ func TestSearchEpisodes(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	ep := Episode{
+	ep := memory.Episode{
 		ID: uuid.NewString(), Summary: "user asked about Go programming",
 		StartTime: 1000, EndTime: 2000, MessageIDs: "[]", Importance: 0.8,
 	}
@@ -241,7 +243,7 @@ func TestSearchEpisodes(t *testing.T) {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
 
-	embedding, err := SerializeVector(make768Vector())
+	embedding, err := memory.SerializeVector(make768Vector())
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
@@ -266,8 +268,8 @@ func TestSearchFacts(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	now := now()
-	fact := Fact{
+	now := time.Now().UnixMilli()
+	fact := memory.Fact{
 		ID: uuid.NewString(), Fact: "user prefers Go over Python",
 		Category: "preference", Confidence: 0.9, CreatedAt: now, UpdatedAt: now,
 	}
@@ -275,7 +277,7 @@ func TestSearchFacts(t *testing.T) {
 		t.Fatalf("SaveFact: %v", err)
 	}
 
-	embedding, err := SerializeVector(make768Vector())
+	embedding, err := memory.SerializeVector(make768Vector())
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}

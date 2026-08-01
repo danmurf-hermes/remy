@@ -27,24 +27,24 @@ func defaultHTTPClient() *http.Client {
 // OllamaClient implements the Provider interface for OpenAI-compatible
 // LLM endpoints (Ollama, OpenAI, etc.).
 type OllamaClient struct {
-	endpoint       string
-	apiKey         string
-	chatModel      string
-	embeddingModel string
-	parameters     map[string]any
-	httpClient     *http.Client
+	Endpoint       string
+	APIKey         string
+	ChatModel      string
+	EmbeddingModel string
+	Parameters     map[string]any
+	HTTPClient     *http.Client
 }
 
 // NewOllamaClient creates a new OllamaClient with the given endpoint, auth,
 // model names, and optional parameters (temperature, max_tokens, etc.).
 func NewOllamaClient(endpoint, apiKey, chatModel, embeddingModel string, parameters map[string]any) *OllamaClient {
 	return &OllamaClient{
-		endpoint:       endpoint,
-		apiKey:         apiKey,
-		chatModel:      chatModel,
-		embeddingModel: embeddingModel,
-		parameters:     parameters,
-		httpClient:     defaultHTTPClient(),
+		Endpoint:       endpoint,
+		APIKey:         apiKey,
+		ChatModel:      chatModel,
+		EmbeddingModel: embeddingModel,
+		Parameters:     parameters,
+		HTTPClient:     defaultHTTPClient(),
 	}
 }
 
@@ -52,11 +52,11 @@ func NewOllamaClient(endpoint, apiKey, chatModel, embeddingModel string, paramet
 // If req.Model is empty, the client's configured chat model is used.
 func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
 	if req.Model == "" {
-		req.Model = c.chatModel
+		req.Model = c.ChatModel
 	}
 	req.Stream = false
 
-	body, err := c.doRequest(ctx, http.MethodPost, c.endpoint+chatEndpoint, req)
+	body, err := c.doRequest(ctx, http.MethodPost, c.Endpoint+chatEndpoint, req)
 	if err != nil {
 		return nil, fmt.Errorf("chat request: %w", err)
 	}
@@ -79,11 +79,11 @@ func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 // it is closed. The stream is canceled when the context is done.
 func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan StreamChunk, error) {
 	if req.Model == "" {
-		req.Model = c.chatModel
+		req.Model = c.ChatModel
 	}
 	req.Stream = true
 
-	body, err := c.doRequest(ctx, http.MethodPost, c.endpoint+chatEndpoint, req)
+	body, err := c.doRequest(ctx, http.MethodPost, c.Endpoint+chatEndpoint, req)
 	if err != nil {
 		return nil, fmt.Errorf("chat stream request: %w", err)
 	}
@@ -128,18 +128,18 @@ func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan 
 // Embed generates a vector embedding for the given text using the
 // client's configured embedding model.
 func (c *OllamaClient) Embed(ctx context.Context, text string) ([]float32, error) {
-	req := embedRequest{
-		Model: c.embeddingModel,
+	req := EmbedRequest{
+		Model: c.EmbeddingModel,
 		Input: []string{text},
 	}
 
-	body, err := c.doRequest(ctx, http.MethodPost, c.endpoint+embedEndpoint, req)
+	body, err := c.doRequest(ctx, http.MethodPost, c.Endpoint+embedEndpoint, req)
 	if err != nil {
 		return nil, fmt.Errorf("embed request: %w", err)
 	}
 	defer func() { _ = body.Close() }()
 
-	var resp embedResponse
+	var resp EmbedResponse
 	if err := json.NewDecoder(body).Decode(&resp); err != nil {
 		return nil, fmt.Errorf("decoding embed response: %w", err)
 	}
@@ -168,11 +168,11 @@ func (c *OllamaClient) doRequest(ctx context.Context, method, url string, reqBod
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	if c.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	if c.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
 	}
 
-	httpResp, err := c.httpClient.Do(httpReq)
+	httpResp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("sending request: %w", err)
 	}
@@ -186,12 +186,14 @@ func (c *OllamaClient) doRequest(ctx context.Context, method, url string, reqBod
 	return httpResp.Body, nil
 }
 
-type embedRequest struct {
+// EmbedRequest is the request body for the embeddings API.
+type EmbedRequest struct {
 	Model string   `json:"model"`
 	Input []string `json:"input"`
 }
 
-type embedResponse struct {
+// EmbedResponse is the response from the embeddings API.
+type EmbedResponse struct {
 	Data []struct {
 		Embedding []float64 `json:"embedding"`
 	} `json:"data"`

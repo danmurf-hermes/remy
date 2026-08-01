@@ -29,12 +29,14 @@ func NewEmbedder(endpoint, model string) *Embedder {
 	}
 }
 
-type embeddingRequest struct {
+// EmbeddingRequest is the request body for the embeddings API.
+type EmbeddingRequest struct {
 	Model string   `json:"model"`
 	Input []string `json:"input"`
 }
 
-type embeddingResponse struct {
+// EmbeddingResponse is the response from the embeddings API.
+type EmbeddingResponse struct {
 	Data []struct {
 		Embedding []float64 `json:"embedding"`
 	} `json:"data"`
@@ -43,12 +45,12 @@ type embeddingResponse struct {
 // GenerateEmbedding calls the embeddings API to produce a vector
 // representation of the given text.
 func (e *Embedder) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
-	req := embeddingRequest{
+	req := EmbeddingRequest{
 		Model: e.Model,
 		Input: []string{text},
 	}
 
-	var resp embeddingResponse
+	var resp EmbeddingResponse
 	if err := e.doRequest(ctx, req, &resp); err != nil {
 		return nil, fmt.Errorf("generating embedding: %w", err)
 	}

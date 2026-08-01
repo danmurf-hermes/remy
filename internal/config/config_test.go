@@ -1,16 +1,18 @@
-package config
+package config_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/danmurf/remy/internal/config"
 )
 
 func TestConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		setup   func(t *testing.T) string
-		check   func(t *testing.T, cfg *Config)
+		check   func(t *testing.T, cfg *config.Config)
 		wantErr bool
 	}{
 		{
@@ -18,7 +20,7 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				return filepath.Join(t.TempDir(), "nonexistent.json")
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if cfg.DefaultProvider != "ollama" {
 					t.Errorf("expected default provider 'ollama', got %q", cfg.DefaultProvider)
 				}
@@ -35,7 +37,7 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				return filepath.Join(t.TempDir(), "nonexistent.json")
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if cfg.DefaultProvider != "ollama" {
 					t.Errorf("expected default provider, got %q", cfg.DefaultProvider)
 				}
@@ -79,7 +81,7 @@ func TestConfig(t *testing.T) {
 				}
 				return path
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if cfg.DefaultProvider != "test-provider" {
 					t.Errorf("expected 'test-provider', got %q", cfg.DefaultProvider)
 				}
@@ -105,14 +107,14 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				path := filepath.Join(dir, "config.json")
-				cfg := DefaultConfig()
+				cfg := config.DefaultConfig()
 				cfg.DefaultProvider = "saved-provider"
-				if err := SaveConfig(path, cfg); err != nil {
+				if err := config.SaveConfig(path, cfg); err != nil {
 					t.Fatalf("SaveConfig failed: %v", err)
 				}
 				return path
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if cfg.DefaultProvider != "saved-provider" {
 					t.Errorf("expected 'saved-provider', got %q", cfg.DefaultProvider)
 				}
@@ -123,8 +125,8 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				return "" // not used
 			},
-			check: func(t *testing.T, cfg *Config) {
-				path, err := ConfigPath()
+			check: func(t *testing.T, cfg *config.Config) {
+				path, err := config.ConfigPath()
 				if err != nil {
 					t.Fatalf("ConfigPath failed: %v", err)
 				}
@@ -140,13 +142,13 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				path := filepath.Join(dir, "subdir", "config.json")
-				cfg := DefaultConfig()
-				if err := SaveConfig(path, cfg); err != nil {
+				cfg := config.DefaultConfig()
+				if err := config.SaveConfig(path, cfg); err != nil {
 					t.Fatalf("SaveConfig: %v", err)
 				}
 				return path
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if cfg.DefaultProvider != "ollama" {
 					t.Errorf("expected 'ollama', got %q", cfg.DefaultProvider)
 				}
@@ -170,7 +172,7 @@ func TestConfig(t *testing.T) {
 				tt.check(t, nil)
 				return
 			}
-			cfg, err := LoadConfig(path)
+			cfg, err := config.LoadConfig(path)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
