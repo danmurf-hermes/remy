@@ -556,18 +556,18 @@ Every push runs:
 **Goal:** Implement the `remy init` command that walks users through setup, and the first-run experience when starting without init.
 
 **Tasks:**
-- [ ] Create `cmd/remy/init.go`:
+- [x] Create `cmd/remy/init.go`:
   - Check for Ollama (or configured provider)
   - Check for required models
   - Create `~/.remy/` directory structure
   - Generate default `config.json`
   - Generate default persona (`personas/default.md`)
   - Print next steps
-- [ ] Implement first-run detection:
+- [x] Implement first-run detection:
   - If `~/.remy/` doesn't exist on startup, auto-run init checks
   - Guide user through missing dependencies interactively
-- [ ] Write tests for init logic (mock file system, mock Ollama check)
-- [ ] Update `main.go` to handle `init` subcommand and first-run flow
+- [x] Write tests for init logic (mock file system, mock Ollama check)
+- [x] Update `main.go` to handle `init` subcommand and first-run flow
 
 **Acceptance criteria:**
 - `remy init` creates all necessary files and directories
@@ -714,7 +714,7 @@ Every push runs:
 | 9. GUI — Memory Explorer | [x] | 2026-08-01 | 2026-08-01 | 5 Svelte components, 11 Go bindings, 8 stores, 11 JS wrappers. 10 frontend tests pass. Go code compiles cleanly. |
 | 10. GUI — Tasks, Personas, Activity, Settings | [x] | 2026-08-01 | 2026-08-01 | 4 Svelte components, 6 Go bindings, 3 stores, 6 JS wrappers. 23 frontend tests pass. System tray added. |
 | 11. Telegram Interface | [x] | 2026-08-01 | 2026-08-01 | 250-line Telegram bot with long-polling, 20 tests, --daemon flag, user auth. |
-| 12. `remy init` & First-Run | [ ] | — | — | |
+| 12. `remy init` & First-Run | [x] | 2026-08-01 | 2026-08-01 | 7 tests, all passing. initCmd creates ~/.remy/, config.json, personas/default.md. Checks Ollama + required models. First-run detection in main.go shows welcome banner. Idempotent — re-running doesn't overwrite files. |
 | 13. Polish & Edge Cases | [ ] | — | — | |
 | 14. CI/CD & Release Pipeline | [ ] | — | — | |
 | 15. Documentation | [ ] | — | — | |
