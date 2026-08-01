@@ -109,11 +109,11 @@ type consolidationSignal struct {
 // embedder, persona loader, and configuration.
 func NewAgent(store Store, provider llm.Provider, embedder Embedder, personaLoader PersonaLoader, cfg *Config) *Agent {
 	a := &Agent{
-		store:         store,
-		provider:      provider,
-		embedder:      embedder,
-		personaLoader: personaLoader,
-		cfg:           cfg,
+		store:           store,
+		provider:        provider,
+		embedder:        embedder,
+		personaLoader:   personaLoader,
+		cfg:             cfg,
 		consolidationCh: make(chan consolidationSignal, 1),
 		stopCh:          make(chan struct{}),
 	}

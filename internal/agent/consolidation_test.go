@@ -26,14 +26,14 @@ func TestAgent_QuickConsolidation(t *testing.T) {
 		wantSummarize bool
 	}{
 		{
-			name:    "no messages",
+			name:     "no messages",
 			messages: nil,
 			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 			},
 			wantErr: false,
 		},
 		{
-			name: "empty messages",
+			name:     "empty messages",
 			messages: []memory.Message{},
 			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 			},
