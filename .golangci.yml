@@ -48,6 +48,8 @@ linters:
         - name: redefines-builtin-id
         - name: confusing-naming
         - name: confusing-results
+        - name: exported
+        - name: package-comments
     misspell:
       locale: US
     prealloc:
@@ -67,12 +69,6 @@ linters:
       - linters:
           - gosec
         text: "G101"
-      - linters:
-          - revive
-        text: "exported"
-      - linters:
-          - revive
-        text: "package-comments"
       - linters:
           - revive
         text: "blank-imports"

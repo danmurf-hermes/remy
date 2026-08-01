@@ -11,12 +11,16 @@ import (
 	vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 )
 
+// Embedder generates vector embeddings by calling an OpenAI-compatible
+// embeddings API endpoint.
 type Embedder struct {
 	Endpoint string
 	Model    string
 	Client   *http.Client
 }
 
+// NewEmbedder creates an Embedder that calls the given endpoint with the
+// specified model name.
 func NewEmbedder(endpoint, model string) *Embedder {
 	return &Embedder{
 		Endpoint: endpoint,
@@ -36,6 +40,8 @@ type embeddingResponse struct {
 	} `json:"data"`
 }
 
+// GenerateEmbedding calls the embeddings API to produce a vector
+// representation of the given text.
 func (e *Embedder) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
 	req := embeddingRequest{
 		Model: e.Model,
@@ -84,10 +90,13 @@ func (e *Embedder) doRequest(ctx context.Context, req, resp any) error {
 	return readJSON(httpResp.Body, resp)
 }
 
+// SerializeVector converts a float32 slice to a byte slice for storage in
+// the vec0 virtual table.
 func SerializeVector(v []float32) ([]byte, error) {
 	return vec.SerializeFloat32(v)
 }
 
+// DeserializeVector converts a byte slice back into a float32 vector.
 func DeserializeVector(data []byte) ([]float32, error) {
 	r := bytes.NewReader(data)
 	var v []float32
@@ -101,6 +110,8 @@ func DeserializeVector(data []byte) ([]float32, error) {
 	return v, nil
 }
 
+// SaveMessageVector stores a vector embedding for a message in the
+// message_vectors virtual table.
 func (s *Store) SaveMessageVector(ctx context.Context, messageID string, embedding []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -120,6 +131,8 @@ func (s *Store) SaveMessageVector(ctx context.Context, messageID string, embeddi
 	return nil
 }
 
+// SaveEpisodeVector stores a vector embedding for an episode in the
+// episode_vectors virtual table.
 func (s *Store) SaveEpisodeVector(ctx context.Context, episodeID string, embedding []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -139,6 +152,8 @@ func (s *Store) SaveEpisodeVector(ctx context.Context, episodeID string, embeddi
 	return nil
 }
 
+// SaveFactVector stores a vector embedding for a fact in the fact_vectors
+// virtual table.
 func (s *Store) SaveFactVector(ctx context.Context, factID string, embedding []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

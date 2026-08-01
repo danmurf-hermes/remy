@@ -7,6 +7,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// GetScratchpad retrieves the current scratchpad content from the database.
+// The scratchpad is a persistent note area the agent uses for working memory.
 func (s *Store) GetScratchpad(ctx context.Context) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -27,6 +29,8 @@ func (s *Store) GetScratchpad(ctx context.Context) (string, error) {
 	return content, nil
 }
 
+// UpdateScratchpad replaces the scratchpad content. If no row exists for
+// the default scratchpad, it is created (upsert).
 func (s *Store) UpdateScratchpad(ctx context.Context, content string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -47,6 +51,8 @@ func (s *Store) UpdateScratchpad(ctx context.Context, content string) error {
 	return nil
 }
 
+// InitScratchpad ensures a default scratchpad row exists in the database.
+// It is a no-op if the row already exists.
 func (s *Store) InitScratchpad(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

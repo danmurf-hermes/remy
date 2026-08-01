@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// SaveMessage inserts a new message into the database.
 func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -26,6 +27,7 @@ func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 	return nil
 }
 
+// GetMessage retrieves a single message by its ID.
 func (s *Store) GetMessage(ctx context.Context, id string) (*Message, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -46,6 +48,8 @@ func (s *Store) GetMessage(ctx context.Context, id string) (*Message, error) {
 	return &msg, nil
 }
 
+// GetMessages returns a paginated list of all messages, ordered by most
+// recent first.
 func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -77,6 +81,8 @@ func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, 
 	return messages, rows.Err()
 }
 
+// GetMessagesBySession returns all messages for a given session ID, ordered
+// by timestamp ascending.
 func (s *Store) GetMessagesBySession(ctx context.Context, sessionID string) ([]Message, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

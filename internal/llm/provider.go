@@ -7,12 +7,16 @@ import (
 	"github.com/yourname/remy/internal/config"
 )
 
+// Provider is the interface for LLM backends. Implementations must support
+// chat, streaming chat, and text embedding.
 type Provider interface {
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
 	ChatStream(ctx context.Context, req ChatRequest) (<-chan StreamChunk, error)
 	Embed(ctx context.Context, text string) ([]float32, error)
 }
 
+// NewProvider creates a Provider from the given config. Currently only
+// Ollama-compatible endpoints are supported.
 func NewProvider(cfg config.ProviderConfig) (Provider, error) {
 	if cfg.Endpoint == "" {
 		return nil, fmt.Errorf("provider endpoint is required")

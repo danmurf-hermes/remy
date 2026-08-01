@@ -1,3 +1,5 @@
+// Package llm provides an OpenAI-compatible client for interacting with LLM
+// providers (e.g., Ollama). It supports chat, streaming, and embeddings.
 package llm
 
 import (
@@ -22,6 +24,8 @@ func defaultHTTPClient() *http.Client {
 	return &http.Client{Timeout: requestTimeout}
 }
 
+// OllamaClient implements the Provider interface for OpenAI-compatible
+// LLM endpoints (Ollama, OpenAI, etc.).
 type OllamaClient struct {
 	endpoint       string
 	apiKey         string
@@ -31,6 +35,8 @@ type OllamaClient struct {
 	httpClient     *http.Client
 }
 
+// NewOllamaClient creates a new OllamaClient with the given endpoint, auth,
+// model names, and optional parameters (temperature, max_tokens, etc.).
 func NewOllamaClient(endpoint, apiKey, chatModel, embeddingModel string, parameters map[string]any) *OllamaClient {
 	return &OllamaClient{
 		endpoint:       endpoint,
@@ -42,6 +48,8 @@ func NewOllamaClient(endpoint, apiKey, chatModel, embeddingModel string, paramet
 	}
 }
 
+// Chat sends a chat completion request and returns the full response.
+// If req.Model is empty, the client's configured chat model is used.
 func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
 	if req.Model == "" {
 		req.Model = c.chatModel
@@ -66,6 +74,9 @@ func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 	return &resp, nil
 }
 
+// ChatStream sends a streaming chat completion request and returns a
+// channel of StreamChunks. The caller must read from the channel until
+// it is closed. The stream is canceled when the context is done.
 func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan StreamChunk, error) {
 	if req.Model == "" {
 		req.Model = c.chatModel
@@ -114,6 +125,8 @@ func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan 
 	return ch, nil
 }
 
+// Embed generates a vector embedding for the given text using the
+// client's configured embedding model.
 func (c *OllamaClient) Embed(ctx context.Context, text string) ([]float32, error) {
 	req := embedRequest{
 		Model: c.embeddingModel,

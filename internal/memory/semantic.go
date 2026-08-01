@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// SaveFact inserts a new fact into the database.
 func (s *Store) SaveFact(ctx context.Context, fact *Fact) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -26,6 +27,7 @@ func (s *Store) SaveFact(ctx context.Context, fact *Fact) error {
 	return nil
 }
 
+// GetFact retrieves a single fact by its ID.
 func (s *Store) GetFact(ctx context.Context, id string) (*Fact, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -46,6 +48,8 @@ func (s *Store) GetFact(ctx context.Context, id string) (*Fact, error) {
 	return &f, nil
 }
 
+// GetFacts returns a paginated list of all facts, ordered by most recently
+// updated.
 func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -77,6 +81,8 @@ func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error)
 	return facts, rows.Err()
 }
 
+// GetFactsByCategory returns all facts in a given category, ordered by
+// confidence descending.
 func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -107,6 +113,8 @@ func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact
 	return facts, rows.Err()
 }
 
+// UpdateFact updates the fact text, category, confidence, and source of an
+// existing fact identified by its ID.
 func (s *Store) UpdateFact(ctx context.Context, fact *Fact) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -130,6 +138,7 @@ func (s *Store) UpdateFact(ctx context.Context, fact *Fact) error {
 	return nil
 }
 
+// DeleteFact removes a fact from the database by its ID.
 func (s *Store) DeleteFact(ctx context.Context, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -148,6 +157,8 @@ func (s *Store) DeleteFact(ctx context.Context, id string) error {
 	return nil
 }
 
+// SearchFacts performs a vector similarity search over facts using the
+// given embedding, returning the top-N most similar facts.
 func (s *Store) SearchFacts(ctx context.Context, embedding []byte, limit int) ([]Fact, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -177,6 +188,7 @@ func (s *Store) SearchFacts(ctx context.Context, embedding []byte, limit int) ([
 	return facts, rows.Err()
 }
 
+// SaveEntity inserts a new entity into the database.
 func (s *Store) SaveEntity(ctx context.Context, entity Entity) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -196,6 +208,7 @@ func (s *Store) SaveEntity(ctx context.Context, entity Entity) error {
 	return nil
 }
 
+// GetEntity retrieves a single entity by its ID.
 func (s *Store) GetEntity(ctx context.Context, id string) (*Entity, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -216,6 +229,7 @@ func (s *Store) GetEntity(ctx context.Context, id string) (*Entity, error) {
 	return &e, nil
 }
 
+// GetEntities returns all entities ordered by name.
 func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -245,6 +259,8 @@ func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
 	return entities, rows.Err()
 }
 
+// SaveRelationship inserts a new relationship between two entities into
+// the database.
 func (s *Store) SaveRelationship(ctx context.Context, rel *Relationship) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -264,6 +280,7 @@ func (s *Store) SaveRelationship(ctx context.Context, rel *Relationship) error {
 	return nil
 }
 
+// GetRelationships returns all relationships in the database.
 func (s *Store) GetRelationships(ctx context.Context) ([]Relationship, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

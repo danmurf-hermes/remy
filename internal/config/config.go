@@ -1,3 +1,6 @@
+// Package config provides configuration loading, saving, and defaults
+// for the Remy personal assistant. Configuration is stored as JSON
+// in ~/.remy/config.json.
 package config
 
 import (
@@ -7,6 +10,8 @@ import (
 	"path/filepath"
 )
 
+// ProviderConfig holds the connection and model settings for an LLM provider
+// (e.g., Ollama, OpenAI). Each named provider in the config has one of these.
 type ProviderConfig struct {
 	Endpoint       string         `json:"endpoint"`
 	APIKey         string         `json:"api_key"`
@@ -15,6 +20,8 @@ type ProviderConfig struct {
 	Parameters     map[string]any `json:"parameters,omitempty"`
 }
 
+// MemoryConfig controls the SQLite-backed memory system — database path,
+// working memory size, and consolidation timing.
 type MemoryConfig struct {
 	DBPath                    string `json:"db_path"`
 	WorkingMemoryTurns        int    `json:"working_memory_turns"`
@@ -22,21 +29,28 @@ type MemoryConfig struct {
 	DeepConsolidationDelayMs  int    `json:"deep_consolidation_delay_ms"`
 }
 
+// PersonaConfig specifies the active persona and the directory where
+// persona Markdown files are stored.
 type PersonaConfig struct {
 	Active    string `json:"active"`
 	Directory string `json:"directory"`
 }
 
+// TelegramConfig controls the optional Telegram bot interface.
 type TelegramConfig struct {
 	Enabled      bool     `json:"enabled"`
 	BotToken     string   `json:"bot_token"`
 	AllowedUsers []string `json:"allowed_users"`
 }
 
+// InterfacesConfig holds configuration for all user-facing interfaces
+// (e.g., Telegram).
 type InterfacesConfig struct {
 	Telegram TelegramConfig `json:"telegram"`
 }
 
+// Config is the top-level configuration for Remy. It includes provider
+// definitions, memory settings, persona selection, and interface options.
 type Config struct {
 	Providers       map[string]ProviderConfig `json:"providers"`
 	DefaultProvider string                    `json:"default_provider"`
@@ -47,6 +61,8 @@ type Config struct {
 
 const defaultProviderName = "ollama"
 
+// DefaultConfig returns a Config with sensible defaults for a local Ollama
+// setup. The returned config can be modified and saved via SaveConfig.
 func DefaultConfig() *Config {
 	return &Config{
 		Providers: map[string]ProviderConfig{
@@ -90,7 +106,9 @@ func remyDir() (string, error) {
 	return filepath.Join(home, ".remy"), nil
 }
 
-func ConfigPath() (string, error) {
+// ConfigPath returns the expected path to the config file
+// (~/.remy/config.json), creating the ~/.remy directory if needed.
+func ConfigPath() (string, error) { //nolint:revive // stutters but is the clearest name
 	dir, err := remyDir()
 	if err != nil {
 		return "", err
@@ -98,6 +116,8 @@ func ConfigPath() (string, error) {
 	return filepath.Join(dir, "config.json"), nil
 }
 
+// LoadConfig reads and parses a JSON config file. If the file does not
+// exist, it returns DefaultConfig without an error.
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // path is user-provided config path
 	if err != nil {
@@ -114,6 +134,8 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
+// SaveConfig writes the given config as indented JSON to the specified path,
+// creating parent directories as needed.
 func SaveConfig(path string, cfg *Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {

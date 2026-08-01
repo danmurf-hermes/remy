@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// SaveEpisode inserts a new episode into the database.
 func (s *Store) SaveEpisode(ctx context.Context, ep *Episode) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -26,6 +27,7 @@ func (s *Store) SaveEpisode(ctx context.Context, ep *Episode) error {
 	return nil
 }
 
+// GetEpisode retrieves a single episode by its ID.
 func (s *Store) GetEpisode(ctx context.Context, id string) (*Episode, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -46,6 +48,8 @@ func (s *Store) GetEpisode(ctx context.Context, id string) (*Episode, error) {
 	return &ep, nil
 }
 
+// GetEpisodes returns a paginated list of all episodes, ordered by most
+// recent first.
 func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -77,6 +81,8 @@ func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, 
 	return episodes, rows.Err()
 }
 
+// GetEpisodesByTimeRange returns all episodes whose time range falls within
+// the given start and end timestamps.
 func (s *Store) GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([]Episode, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -108,6 +114,8 @@ func (s *Store) GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([
 	return episodes, rows.Err()
 }
 
+// SearchEpisodes performs a vector similarity search over episodes using the
+// given embedding, returning the top-N most similar episodes.
 func (s *Store) SearchEpisodes(ctx context.Context, embedding []byte, limit int) ([]Episode, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

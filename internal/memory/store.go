@@ -19,11 +19,15 @@ var sb = sq.StatementBuilder.PlaceholderFormat(sq.Question)
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+// Store wraps a SQLite database and provides thread-safe CRUD operations
+// for messages, episodes, facts, entities, relationships, and the scratchpad.
 type Store struct {
 	db *sql.DB
 	mu sync.RWMutex
 }
 
+// NewStore opens or creates a SQLite database at the given path, runs
+// migrations, and returns a ready-to-use Store.
 func NewStore(dbPath string) (*Store, error) {
 	vec.Auto()
 
@@ -46,10 +50,12 @@ func NewStore(dbPath string) (*Store, error) {
 	return s, nil
 }
 
+// Close closes the underlying database connection.
 func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// DB returns the underlying *sql.DB for advanced use cases.
 func (s *Store) DB() *sql.DB {
 	return s.db
 }

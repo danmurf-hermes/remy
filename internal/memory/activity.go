@@ -1,3 +1,5 @@
+// Package memory provides a SQLite-backed memory system for the Remy agent,
+// including message storage, episodic memory, semantic memory, and vector search.
 package memory
 
 import (
@@ -7,6 +9,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// LogActivity records an agent action or decision in the activity log.
 func (s *Store) LogActivity(ctx context.Context, entry *ActivityEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -26,6 +29,8 @@ func (s *Store) LogActivity(ctx context.Context, entry *ActivityEntry) error {
 	return nil
 }
 
+// GetActivityLog returns paginated activity log entries, optionally filtered
+// by type, ordered by most recent first.
 func (s *Store) GetActivityLog(ctx context.Context, filter string, limit, offset int) ([]ActivityEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

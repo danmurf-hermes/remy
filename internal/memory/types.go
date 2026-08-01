@@ -1,5 +1,7 @@
 package memory
 
+// Message represents a single message exchanged between a user and the
+// agent, stored in the database.
 type Message struct {
 	ID        string
 	UserID    string
@@ -10,6 +12,7 @@ type Message struct {
 	SessionID string
 }
 
+// Episode is a summarized block of conversation, stored as episodic memory.
 type Episode struct {
 	ID         string
 	Summary    string
@@ -20,6 +23,8 @@ type Episode struct {
 	Topics     string
 }
 
+// Fact is a piece of semantic knowledge about the user (preferences,
+// traits, personal info) extracted from conversations.
 type Fact struct {
 	ID         string
 	Fact       string
@@ -30,6 +35,8 @@ type Fact struct {
 	UpdatedAt  int64
 }
 
+// Entity represents a person, place, concept, or thing that the agent
+// knows about.
 type Entity struct {
 	ID          string
 	Name        string
@@ -38,6 +45,8 @@ type Entity struct {
 	CreatedAt   int64
 }
 
+// Relationship describes a link between two entities (e.g., "works_on",
+// "lives_in").
 type Relationship struct {
 	ID           string
 	SourceEntity string
@@ -47,6 +56,8 @@ type Relationship struct {
 	CreatedAt    int64
 }
 
+// ActivityEntry is a log entry recording an agent action or decision
+// for audit and debugging purposes.
 type ActivityEntry struct {
 	ID        string
 	Timestamp int64
