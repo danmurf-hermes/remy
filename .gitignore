@@ -4,3 +4,4 @@ frontend/dist/
 *.db
 *.log
 .DS_Store
+remy

@@ -6,6 +6,7 @@ import (
 
 	"github.com/danmurf/remy/internal/llm"
 	"github.com/danmurf/remy/internal/memory"
+	"github.com/danmurf/remy/internal/persona"
 )
 
 // PromptInput holds all the data needed to build a prompt for the LLM.
@@ -15,6 +16,7 @@ type PromptInput struct {
 	Facts          []memory.Fact
 	RecentMessages []memory.Message
 	UserMessage    string
+	Persona        *persona.Persona
 }
 
 // PromptResult contains the constructed messages ready to send to the LLM.
@@ -28,7 +30,12 @@ type PromptResult struct {
 func BuildPrompt(input *PromptInput) PromptResult {
 	var sections []string
 
-	sections = append(sections, `You are Remy, a helpful personal assistant. You are friendly, concise, and proactive.
+	// Start with the persona body if available, otherwise use the default
+	// system prompt.
+	if input.Persona != nil && input.Persona.Body != "" {
+		sections = append(sections, input.Persona.Body)
+	} else {
+		sections = append(sections, `You are Remy, a helpful personal assistant. You are friendly, concise, and proactive.
 
 You have access to a memory system that stores:
 - Episodic memory: summaries of past conversations
@@ -36,6 +43,7 @@ You have access to a memory system that stores:
 - A scratchpad: your working notes
 
 Use the retrieved context below to inform your responses. If the context is relevant, reference it naturally. If it's not relevant, ignore it.`)
+	}
 
 	if input.Scratchpad != "" {
 		sections = append(sections, fmt.Sprintf(`## Scratchpad (Your Working Notes)
