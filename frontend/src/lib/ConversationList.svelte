@@ -33,22 +33,22 @@
 <style>
   .conversation-list {
     width: 200px;
-    border-right: 1px solid #e0e0e0;
+    border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    background: #fafafa;
+    background: var(--bg-secondary);
   }
 
   .header {
     padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .header h3 {
     margin: 0;
     font-size: 13px;
     font-weight: 600;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .list {
@@ -70,23 +70,23 @@
   }
 
   .conv-item:hover {
-    background: #e8e8ed;
+    background: var(--hover-bg);
   }
 
   .conv-item.active {
-    background: #d4d4d8;
+    background: var(--bg-tertiary);
   }
 
   .conv-name {
     font-size: 13px;
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text-primary);
     margin-bottom: 2px;
   }
 
   .conv-preview {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -95,7 +95,7 @@
   .empty {
     padding: 20px;
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 12px;
   }
 </style>
