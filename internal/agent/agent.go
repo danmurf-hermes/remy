@@ -313,6 +313,151 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 	return responseMessage, nil
 }
 
+// StreamChunk represents a single chunk of a streaming response from the agent.
+type StreamChunk struct {
+	Content string
+	Done    bool
+	Error   string
+}
+
+// HandleMessageStream is the streaming version of HandleMessage. It processes
+// a user message through the full pipeline and returns a channel of StreamChunks
+// that the caller can read from until Done is true.
+func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 64)
+
+	a.SignalActivity()
+	now := time.Now().UnixMilli()
+
+	userID := a.cfg.UserID
+	sessionID := a.cfg.SessionID
+	interfaceName := a.cfg.Interface
+
+	userMessage := &memory.Message{
+		ID:        uuid.NewString(),
+		UserID:    userID,
+		Role:      "user",
+		Content:   userMsg,
+		Timestamp: now,
+		Interface: interfaceName,
+		SessionID: sessionID,
+	}
+
+	if err := a.store.SaveMessage(ctx, userMessage); err != nil {
+		return nil, fmt.Errorf("saving user message: %w", err)
+	}
+
+	a.logActivity(ctx, "message_received", userMessage.ID, sessionID)
+
+	userEmbedding, err := a.embedder.GenerateEmbedding(ctx, userMsg)
+	if err != nil {
+		return nil, fmt.Errorf("generating embedding: %w", err)
+	}
+
+	embeddingBytes, err := memory.SerializeVector(userEmbedding)
+	if err != nil {
+		return nil, fmt.Errorf("serializing embedding: %w", err)
+	}
+
+	if err := a.store.SaveMessageVector(ctx, userMessage.ID, embeddingBytes); err != nil {
+		return nil, fmt.Errorf("saving message vector: %w", err)
+	}
+
+	episodes, err := a.store.SearchEpisodes(ctx, embeddingBytes, 5)
+	if err != nil {
+		return nil, fmt.Errorf("searching episodes: %w", err)
+	}
+
+	facts, err := a.store.SearchFacts(ctx, embeddingBytes, 5)
+	if err != nil {
+		return nil, fmt.Errorf("searching facts: %w", err)
+	}
+
+	scratchpad, err := a.store.GetScratchpad(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting scratchpad: %w", err)
+	}
+
+	recentMessages, err := a.store.GetMessages(ctx, a.cfg.WorkingMemoryTurns, 0)
+	if err != nil {
+		return nil, fmt.Errorf("getting recent messages: %w", err)
+	}
+
+	personaSwitch := DetectPersonaSwitch(userMsg, a.activePersona)
+	if personaSwitch != "" {
+		if err := a.SetActivePersona(ctx, personaSwitch); err != nil {
+			a.logActivity(ctx, "error", userMessage.ID, sessionID)
+		}
+	}
+
+	upcomingTasks, _ := a.scheduler.GetUpcomingTasks(ctx)
+
+	prompt := BuildPrompt(&PromptInput{
+		Scratchpad:     scratchpad,
+		Episodes:       episodes,
+		Facts:          facts,
+		RecentMessages: recentMessages,
+		UserMessage:    userMsg,
+		Persona:        a.activePersona,
+		UpcomingTasks:  upcomingTasks,
+	})
+
+	go func() {
+		defer close(ch)
+
+		streamCh, err := a.provider.ChatStream(ctx, llm.ChatRequest{
+			Messages: prompt.Messages,
+		})
+		if err != nil {
+			ch <- StreamChunk{Error: err.Error()}
+			return
+		}
+
+		var fullContent strings.Builder
+		for chunk := range streamCh {
+			for _, choice := range chunk.Choices {
+				select {
+				case ch <- StreamChunk{Content: choice.Delta.Content}:
+				case <-ctx.Done():
+					return
+				}
+				fullContent.WriteString(choice.Delta.Content)
+			}
+		}
+
+		responseContent := fullContent.String()
+		responseTime := time.Now().UnixMilli()
+		responseMessage := &memory.Message{
+			ID:        uuid.NewString(),
+			UserID:    userID,
+			Role:      "assistant",
+			Content:   responseContent,
+			Timestamp: responseTime,
+			Interface: interfaceName,
+			SessionID: sessionID,
+		}
+
+		if err := a.store.SaveMessage(ctx, responseMessage); err != nil {
+			ch <- StreamChunk{Error: err.Error()}
+			return
+		}
+
+		a.logActivity(ctx, "message_sent", responseMessage.ID, sessionID)
+
+		respEmbedding, err := a.embedder.GenerateEmbedding(ctx, responseContent)
+		if err == nil {
+			respEmbeddingBytes, err := memory.SerializeVector(respEmbedding)
+			if err == nil {
+				_ = a.store.SaveMessageVector(ctx, responseMessage.ID, respEmbeddingBytes)
+			}
+		}
+
+		ch <- StreamChunk{Done: true}
+	}()
+
+	return ch, nil
+}
+
 func (a *Agent) logActivity(ctx context.Context, activityType, messageID, sessionID string) {
 	_ = a.store.LogActivity(ctx, &memory.ActivityEntry{
 		ID:        uuid.NewString(),

@@ -974,3 +974,114 @@ func TestAgent_HandleMessage_WithPersonaSwitch(t *testing.T) {
 		t.Errorf("active persona = %q, want %q", a.ActivePersona().Name, "creative")
 	}
 }
+
+func TestAgent_HandleMessageStream(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	store := mock_agent.NewMockStore(ctrl)
+	provider := mock_llm.NewMockProvider(ctrl)
+	embedder := mock_agent.NewMockEmbedder(ctrl)
+	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
+	cfg := agent.DefaultConfig()
+
+	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+		if msg.ID == "" {
+			msg.ID = uuid.NewString()
+		}
+	})
+	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+	embedder.EXPECT().GenerateEmbedding(gomock.Any(), "hello").Return(make([]float32, 768), nil)
+	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+
+	chunkCh := make(chan llm.StreamChunk, 2)
+	chunkCh <- llm.StreamChunk{
+		ID: "mock", Object: "chat.completion.chunk",
+		Choices: []llm.StreamChoice{{Index: 0, Delta: llm.Delta{Content: "Hello "}}},
+	}
+	chunkCh <- llm.StreamChunk{
+		ID: "mock", Object: "chat.completion.chunk",
+		Choices: []llm.StreamChoice{{Index: 0, Delta: llm.Delta{Content: "world!"}}},
+	}
+	close(chunkCh)
+
+	provider.EXPECT().ChatStream(gomock.Any(), gomock.Any()).Return(chunkCh, nil)
+	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+		if msg.ID == "" {
+			msg.ID = uuid.NewString()
+		}
+	})
+	embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello world!").Return(make([]float32, 768), nil)
+	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
+	ch, err := a.HandleMessageStream(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var content string
+	for chunk := range ch {
+		if chunk.Error != "" {
+			t.Fatalf("unexpected error in stream: %s", chunk.Error)
+		}
+		if chunk.Done {
+			break
+		}
+		content += chunk.Content
+	}
+
+	if content != "Hello world!" {
+		t.Errorf("streamed content = %q, want %q", content, "Hello world!")
+	}
+}
+
+func TestAgent_HandleMessageStream_LLMError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	store := mock_agent.NewMockStore(ctrl)
+	provider := mock_llm.NewMockProvider(ctrl)
+	embedder := mock_agent.NewMockEmbedder(ctrl)
+	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
+	cfg := agent.DefaultConfig()
+
+	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+		if msg.ID == "" {
+			msg.ID = uuid.NewString()
+		}
+	})
+	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+	embedder.EXPECT().GenerateEmbedding(gomock.Any(), "hello").Return(make([]float32, 768), nil)
+	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+
+	provider.EXPECT().ChatStream(gomock.Any(), gomock.Any()).Return(nil, errors.New("LLM unavailable"))
+
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
+	ch, err := a.HandleMessageStream(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotError := false
+	for chunk := range ch {
+		if chunk.Error != "" {
+			gotError = true
+		}
+	}
+	if !gotError {
+		t.Error("expected error in stream, got none")
+	}
+}

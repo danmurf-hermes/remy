@@ -48,4 +48,4 @@ jobs:
         working-directory: frontend
 
       - name: Go build
-        run: go build ./cmd/remy
+        run: go build .
