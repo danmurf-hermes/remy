@@ -17,11 +17,11 @@ import (
 const (
 	chatEndpoint   = "/chat/completions"
 	embedEndpoint  = "/embeddings"
-	requestTimeout = 60 * time.Second
+	defaultTimeout = 60 * time.Second
 )
 
 func defaultHTTPClient() *http.Client {
-	return &http.Client{Timeout: requestTimeout}
+	return &http.Client{Timeout: defaultTimeout}
 }
 
 // OllamaClient implements the Provider interface for OpenAI-compatible

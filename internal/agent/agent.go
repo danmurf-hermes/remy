@@ -374,6 +374,11 @@ func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan
 	}
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ch <- StreamChunk{Error: fmt.Sprintf("panic in stream handler: %v", r)}
+			}
+		}()
 		defer close(ch)
 
 		streamCh, err := a.provider.ChatStream(ctx, llm.ChatRequest{

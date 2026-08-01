@@ -11,15 +11,17 @@
   ]
 </script>
 
-<nav class="sidebar">
+<nav class="sidebar" aria-label="Main navigation">
   {#each tabs as tab}
     <button
       class="tab-btn"
       class:active={$activeTab === tab.id}
       on:click={() => activeTab.set(tab.id)}
       title={tab.label}
+      aria-label={tab.label}
+      aria-current={$activeTab === tab.id ? 'page' : undefined}
     >
-      <span class="icon">{tab.icon}</span>
+      <span class="icon" aria-hidden="true">{tab.icon}</span>
     </button>
   {/each}
 </nav>
@@ -30,8 +32,8 @@
     flex-direction: column;
     align-items: center;
     width: 48px;
-    background: #f5f5f7;
-    border-right: 1px solid #e0e0e0;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-light);
     padding: 8px 0;
     gap: 4px;
   }
@@ -53,12 +55,12 @@
   }
 
   .tab-btn:hover {
-    background: #e8e8ed;
+    background: var(--hover-bg);
     opacity: 0.8;
   }
 
   .tab-btn.active {
-    background: #e8e8ed;
+    background: var(--hover-bg);
     opacity: 1;
   }
 

@@ -6,9 +6,10 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/app"
@@ -44,7 +45,8 @@ func main() {
 	// Handle the "init" subcommand before flag parsing
 	if len(os.Args) > 1 && os.Args[1] == "init" {
 		if err := initCmd(); err != nil {
-			log.Fatalf("Init failed: %v", err)
+			slog.Error("Init failed", "error", err)
+			os.Exit(1)
 		}
 		return
 	}
@@ -62,6 +64,8 @@ func main() {
 
 	daemonMode := flag.Bool("daemon", false, "Run in daemon mode (no GUI, Telegram only)")
 	showHelp := flag.Bool("help", false, "Show this help message")
+	logFormat := flag.String("log-format", "text", "Log format: text or json")
+	logLevel := flag.String("log-level", "info", "Log level: debug, info, warn, error")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Remy — Personal AI Assistant
 
@@ -72,17 +76,43 @@ Usage:
   remy --help             Show this help message
 
 Flags:
-  --daemon    Run in daemon mode (no GUI, Telegram only)
-  --help      Show this help message
+  --daemon        Run in daemon mode (no GUI, Telegram only)
+  --help          Show this help message
+  --log-format    Log format: text or json (default: text)
+  --log-level     Log level: debug, info, warn, error (default: info)
 
 Commands:
-  init        Create ~/.remy/ directory, default config, and default persona
+  init            Create ~/.remy/ directory, default config, and default persona
 
 Documentation:
   https://github.com/danmurf/remy#readme
 `)
 	}
 	flag.Parse()
+
+	// Configure structured logging
+	var level slog.Level
+	switch strings.ToLower(*logLevel) {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	opts := &slog.HandlerOptions{Level: level}
+	var handler slog.Handler
+	if strings.ToLower(*logFormat) == "json" {
+		handler = slog.NewJSONHandler(os.Stderr, opts)
+	} else {
+		handler = slog.NewTextHandler(os.Stderr, opts)
+	}
+	slog.SetDefault(slog.New(handler))
 
 	if *showHelp {
 		flag.Usage()
@@ -95,6 +125,7 @@ Documentation:
 		return
 	}
 
+	slog.Info("Remy starting...", "version", version, "daemon", *daemonMode)
 	runApp(*daemonMode)
 }
 
@@ -102,36 +133,42 @@ Documentation:
 func runApp(daemonMode bool) {
 	cfgPath, err := config.ConfigPath()
 	if err != nil {
-		log.Fatalf("Error determining config path: %v", err)
+		slog.Error("Error determining config path", "error", err)
+		os.Exit(1)
 	}
 
 	cfg, err := config.LoadConfig(cfgPath)
 	if err != nil {
-		log.Fatalf("Error loading config: %v", err)
+		slog.Error("Error loading config", "error", err)
+		os.Exit(1)
 	}
 
 	providerCfg, ok := cfg.Providers[cfg.DefaultProvider]
 	if !ok {
-		log.Fatalf("Default provider %q not found in config", cfg.DefaultProvider)
+		slog.Error("Default provider not found in config", "provider", cfg.DefaultProvider)
+		os.Exit(1)
 	}
 
 	llmProvider, err := llm.NewProvider(providerCfg)
 	if err != nil {
-		log.Fatalf("Error creating LLM provider: %v", err)
+		slog.Error("Error creating LLM provider", "error", err)
+		os.Exit(1)
 	}
 
 	dbPath := cfg.Memory.DBPath
 	if dbPath != "" && dbPath[0] == '~' {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatalf("Error getting home directory: %v", err)
+			slog.Error("Error getting home directory", "error", err)
+			os.Exit(1)
 		}
 		dbPath = filepath.Join(home, dbPath[1:])
 	}
 
 	store, err := memory.NewStore(dbPath)
 	if err != nil {
-		log.Fatalf("Error opening database: %v", err)
+		slog.Error("Error opening database", "error", err, "db_path", dbPath)
+		os.Exit(1)
 	}
 
 	embedder := memory.NewEmbedder(providerCfg.Endpoint, providerCfg.EmbeddingModel)
@@ -160,25 +197,27 @@ func runApp(daemonMode bool) {
 		tgCfg := &cfg.Interfaces.Telegram
 		tgInterface = telegram.New(ag, store, tgCfg)
 		if err := tgInterface.Start(context.Background()); err != nil {
-			log.Fatalf("Error starting Telegram interface: %v", err)
+			slog.Error("Error starting Telegram interface", "error", err)
+			os.Exit(1)
 		}
-		log.Printf("Telegram interface started (bot token: %s)", maskToken(tgCfg.BotToken))
+		slog.Info("Telegram interface started", "bot_token", maskToken(tgCfg.BotToken))
 	}
 
 	sched.Start(context.Background())
 
-	fmt.Printf("Remy %s starting...\n", version)
+	slog.Info("Application initialized", "version", version, "daemon", daemonMode)
 
 	if daemonMode {
 		// Daemon mode: run Telegram + scheduler only, block until signal
-		log.Println("Running in daemon mode (no GUI)")
+		slog.Info("Running in daemon mode (no GUI)")
 		select {}
 	}
 
 	application, err := app.NewApp(cfg, cfgPath, store, ag)
 	if err != nil {
 		_ = store.Close()
-		log.Fatalf("Error creating app: %v", err)
+		slog.Error("Error creating app", "error", err)
+		os.Exit(1)
 	}
 
 	err = wails.Run(&options.App{
@@ -209,8 +248,11 @@ func runApp(daemonMode bool) {
 	_ = store.Close()
 
 	if err != nil {
-		log.Fatalf("Error running application: %v", err)
+		slog.Error("Error running application", "error", err)
+		os.Exit(1)
 	}
+
+	slog.Info("Remy shutdown complete")
 }
 
 // maskToken returns a masked version of a bot token for logging.
@@ -224,11 +266,12 @@ func maskToken(token string) string {
 // runInit initializes the Remy configuration directory.
 // This is a placeholder — the full implementation is in Stage 12.
 func runInit() {
-	fmt.Println("Remy init — setting up your configuration...")
+	slog.Info("Remy init — setting up your configuration...")
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("Error getting home directory: %v", err)
+		slog.Error("Error getting home directory", "error", err)
+		os.Exit(1)
 	}
 
 	remyDir := filepath.Join(home, ".remy")
@@ -237,7 +280,8 @@ func runInit() {
 	// Create directories
 	for _, dir := range []string{remyDir, personaDir} {
 		if err := os.MkdirAll(dir, 0o750); err != nil {
-			log.Fatalf("Error creating directory %s: %v", dir, err)
+			slog.Error("Error creating directory", "dir", dir, "error", err)
+			os.Exit(1)
 		}
 	}
 
@@ -246,7 +290,8 @@ func runInit() {
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 		defaultCfg := config.DefaultConfig()
 		if err := config.SaveConfig(cfgPath, defaultCfg); err != nil {
-			log.Fatalf("Error saving default config: %v", err)
+			slog.Error("Error saving default config", "error", err)
+			os.Exit(1)
 		}
 		fmt.Println("  ✓ Created default config:", cfgPath)
 	} else {
@@ -263,7 +308,8 @@ name: default
 You are Remy, a personal AI assistant. You are helpful, warm, and conversational. You remember past conversations and use that context to provide better responses. You can help with questions, tasks, reminders, and general conversation.
 `
 		if err := os.WriteFile(defaultPersona, []byte(content), 0o600); err != nil {
-			log.Fatalf("Error creating default persona: %v", err)
+			slog.Error("Error creating default persona", "error", err)
+			os.Exit(1)
 		}
 		fmt.Println("  ✓ Created default persona:", defaultPersona)
 	} else {

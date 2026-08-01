@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -186,6 +187,11 @@ func (a *Agent) SignalActivity() {
 }
 
 func (a *Agent) consolidationLoop(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Panic in consolidation loop", "recover", r)
+		}
+	}()
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 

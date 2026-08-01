@@ -6,6 +6,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -69,7 +70,7 @@ func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 
 	if err := a.agent.LoadActivePersona(ctx); err != nil {
-		fmt.Printf("Warning: could not load active persona: %v\n", err)
+		slog.Warn("Could not load active persona", "error", err)
 	}
 
 	a.stopConsolidation = a.agent.ScheduleConsolidation(ctx)
