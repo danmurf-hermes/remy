@@ -576,6 +576,12 @@ Every push runs:
 **Goal:** Hardening pass — error handling, edge cases, performance optimization, and UX polish.
 
 **Tasks:**
+- [ ] Structured logging with `log/slog`:
+  - Replace all `log.Fatalf` and `fmt.Printf` calls with `slog` (Info, Warn, Error levels)
+  - Add structured context fields (component, session_id, request_id)
+  - Configure JSON output for production, text output for dev
+  - Add a `--log-format` flag (json/text) and `--log-level` flag (debug/info/warn/error)
+  - Log key lifecycle events: startup, shutdown, message received, LLM call, consolidation, errors
 - [ ] Error handling audit:
   - All errors are properly wrapped with context
   - No panics in production code paths
