@@ -32,7 +32,7 @@ linters:
     dupl:
       threshold: 150
     mnd:
-      ignored-numbers: [0, 1, 2, 100]
+      ignored-numbers: ["0", "1", "2", "100"]
     revive:
       severity: warning
       rules:
