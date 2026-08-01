@@ -17,6 +17,7 @@ type PromptInput struct {
 	RecentMessages []memory.Message
 	UserMessage    string
 	Persona        *persona.Persona
+	UpcomingTasks  string
 }
 
 // PromptResult contains the constructed messages ready to send to the LLM.
@@ -69,6 +70,12 @@ Use the retrieved context below to inform your responses. If the context is rele
 		sections = append(sections, fmt.Sprintf(`## Facts About the User
 
 %s`, strings.Join(factStrs, "\n")))
+	}
+
+	if input.UpcomingTasks != "" {
+		sections = append(sections, fmt.Sprintf(`## Upcoming Tasks & Reminders
+
+%s`, input.UpcomingTasks))
 	}
 
 	systemPrompt := strings.Join(sections, "\n\n")

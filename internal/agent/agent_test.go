@@ -25,9 +25,10 @@ func TestAgent_NewAgent(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 	cfg := agent.DefaultConfig()
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if a == nil {
 		t.Fatal("expected non-nil agent")
 	}
@@ -52,12 +53,20 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
+type handleMessageMock struct {
+	store         *mock_agent.MockStore
+	provider      *mock_llm.MockProvider
+	embedder      *mock_agent.MockEmbedder
+	personaLoader *mock_agent.MockPersonaLoader
+	scheduler     *mock_agent.MockScheduler
+}
+
 func TestAgent_HandleMessage(t *testing.T) {
 	tests := []struct {
 		name       string
 		userMsg    string
 		cfg        agent.Config
-		mock       func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader)
+		mock       func(m handleMessageMock)
 		wantErr    bool
 		wantRole   string
 		wantPrefix string
@@ -65,32 +74,33 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "normal flow",
 			userMsg: "Hello, Remy!",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello, Remy!").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello, Remy!").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-chat-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Hello! How can I help you today?"}, FinishReason: "stop"}},
 					Usage:   llm.Usage{PromptTokens: 10, CompletionTokens: 8, TotalTokens: 18},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantRole:   "assistant",
 			wantPrefix: "Hello! How can I help you today?",
@@ -98,35 +108,36 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "with context",
 			userMsg: "What do you think about Rust?",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "What do you think about Rust?").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return([]memory.Episode{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "What do you think about Rust?").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return([]memory.Episode{
 					{ID: uuid.NewString(), Summary: "User asked about Go programming", StartTime: time.Now().Add(-1 * time.Hour).UnixMilli(), EndTime: time.Now().Add(-30 * time.Minute).UnixMilli(), Importance: 0.8},
 				}, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return([]memory.Fact{
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return([]memory.Fact{
 					{ID: uuid.NewString(), Fact: "User prefers Go for backend development", Category: "preference", Confidence: 0.9},
 				}, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("User is working on a CLI tool project", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("User is working on a CLI tool project", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-chat-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Rust is great for systems programming!"}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantRole:   "assistant",
 			wantPrefix: "Rust is great",
@@ -134,93 +145,96 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "empty message",
 			userMsg: "",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: ""}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantRole: "assistant",
 		},
 		{
 			name:    "LLM error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(nil, errors.New("LLM is down"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(nil, errors.New("LLM is down"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "store save error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, _ *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Return(errors.New("database is locked"))
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Return(errors.New("database is locked"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "embedding error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(nil, errors.New("embedding service unavailable"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(nil, errors.New("embedding service unavailable"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "empty LLM response",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{},
 				}, nil)
@@ -231,31 +245,32 @@ func TestAgent_HandleMessage(t *testing.T) {
 			name:    "custom config",
 			userMsg: "Hello from Telegram!",
 			cfg:     agent.Config{WorkingMemoryTurns: 5, UserID: "test-user", SessionID: "test-session", Interface: "telegram"},
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello from Telegram!").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 5, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello from Telegram!").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 5, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Hello!"}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantRole:   "assistant",
 			wantPrefix: "Hello!",
@@ -263,170 +278,173 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "scratchpad error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", errors.New("scratchpad read error"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", errors.New("scratchpad read error"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "episode search error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, errors.New("episode search failed"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, errors.New("episode search failed"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "fact search error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, errors.New("fact search failed"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, errors.New("fact search failed"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "get messages error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, errors.New("message retrieval failed"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, errors.New("message retrieval failed"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "vector save error on user message",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, _ *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("vector save failed"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("vector save failed"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "vector save error on response",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "response"}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("vector save failed on response"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("vector save failed on response"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "save response message error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "response"}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Return(errors.New("save response failed"))
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Return(errors.New("save response failed"))
 			},
 			wantErr: true,
 		},
 		{
 			name:    "response embedding error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder, personaLoader *mock_agent.MockPersonaLoader) {
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+			mock: func(m handleMessageMock) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
-				store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
-				store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
-				store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
-				provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello").Return(make([]float32, 768), nil)
+				m.store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.store.EXPECT().SearchEpisodes(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
+				m.store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
+				m.store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+				m.scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
+				m.provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 					ID: "mock-id", Object: "chat.completion",
 					Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "response"}, FinishReason: "stop"}},
 				}, nil)
-				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
+				m.store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
 					}
 				})
-				store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
-				embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(nil, errors.New("response embedding failed"))
+				m.store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
+				m.embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(nil, errors.New("response embedding failed"))
 			},
 			wantErr: true,
 		},
@@ -437,18 +455,21 @@ func TestAgent_HandleMessage(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			store := mock_agent.NewMockStore(ctrl)
-			provider := mock_llm.NewMockProvider(ctrl)
-			embedder := mock_agent.NewMockEmbedder(ctrl)
-			personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			m := handleMessageMock{
+				store:         mock_agent.NewMockStore(ctrl),
+				provider:      mock_llm.NewMockProvider(ctrl),
+				embedder:      mock_agent.NewMockEmbedder(ctrl),
+				personaLoader: mock_agent.NewMockPersonaLoader(ctrl),
+				scheduler:     mock_agent.NewMockScheduler(ctrl),
+			}
 
-			tt.mock(store, provider, embedder, personaLoader)
+			tt.mock(m)
 
 			cfg := agent.DefaultConfig()
 			if tt.cfg != (agent.Config{}) {
 				cfg = tt.cfg
 			}
-			a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+			a := agent.NewAgent(m.store, m.provider, m.embedder, m.personaLoader, m.scheduler, &cfg)
 
 			resp, err := a.HandleMessage(context.Background(), tt.userMsg)
 			if tt.wantErr {
@@ -487,6 +508,7 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 		if msg.ID == "" {
@@ -500,6 +522,7 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
 	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
 	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
 	provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 		ID: "mock-id", Object: "chat.completion",
 		Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "First response"}, FinishReason: "stop"}},
@@ -525,6 +548,7 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
 	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
 	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
 	provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 		ID: "mock-id", Object: "chat.completion",
 		Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Second response"}, FinishReason: "stop"}},
@@ -539,7 +563,7 @@ func TestAgent_HandleMessage_ConcurrentMessages(t *testing.T) {
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	resp1, err := a.HandleMessage(context.Background(), "First message")
 	if err != nil {
@@ -624,6 +648,15 @@ func TestBuildPrompt(t *testing.T) {
 			wantN:    2,
 			wantLast: "hello",
 		},
+		{
+			name: "with upcoming tasks",
+			input: &agent.PromptInput{
+				UpcomingTasks: "- [reminder] Call dentist (in 2h0m0s)",
+				UserMessage:   "hello",
+			},
+			wantN:    2,
+			wantLast: "hello",
+		},
 	}
 
 	for _, tt := range tests {
@@ -654,6 +687,7 @@ func TestAgent_LoadActivePersona(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
@@ -663,7 +697,7 @@ func TestAgent_LoadActivePersona(t *testing.T) {
 		Name: "default", Body: "# Default\n\nYou are the default persona.",
 	}, nil)
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.LoadActivePersona(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -683,6 +717,7 @@ func TestAgent_LoadActivePersona_NotFound(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
@@ -690,7 +725,7 @@ func TestAgent_LoadActivePersona_NotFound(t *testing.T) {
 
 	personaLoader.EXPECT().LoadPersona("/tmp/personas/nonexistent.md").Return(nil, &persona.ErrPersonaNotFound{Name: "nonexistent"})
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.LoadActivePersona(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -707,11 +742,11 @@ func TestAgent_LoadActivePersona_NoDir(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
-	// PersonaDir is empty
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.LoadActivePersona(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -725,6 +760,7 @@ func TestAgent_SetActivePersona(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
@@ -733,7 +769,7 @@ func TestAgent_SetActivePersona(t *testing.T) {
 		Name: "creative", Body: "# Creative\n\nYou are creative.",
 	}, nil)
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.SetActivePersona(context.Background(), "creative"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -753,11 +789,11 @@ func TestAgent_SetActivePersona_NoDir(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
-	// PersonaDir is empty
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.SetActivePersona(context.Background(), "creative"); err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -771,13 +807,14 @@ func TestAgent_SetActivePersona_NotFound(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
 
 	personaLoader.EXPECT().LoadPersona("/tmp/personas/nonexistent.md").Return(nil, &persona.ErrPersonaNotFound{Name: "nonexistent"})
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	if err := a.SetActivePersona(context.Background(), "nonexistent"); err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -791,6 +828,7 @@ func TestAgent_ListPersonas(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
@@ -801,7 +839,7 @@ func TestAgent_ListPersonas(t *testing.T) {
 		{Name: "default", Active: true},
 	}, nil)
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	summaries, err := a.ListPersonas(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -884,12 +922,12 @@ func TestAgent_HandleMessage_WithPersonaSwitch(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+	scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.PersonaDir = "/tmp/personas"
 	cfg.ActivePersona = "default"
 
-	// First message: "switch to creative" should trigger persona switch
 	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 		if msg.ID == "" {
 			msg.ID = uuid.NewString()
@@ -902,8 +940,8 @@ func TestAgent_HandleMessage_WithPersonaSwitch(t *testing.T) {
 	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
 	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
 	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
 
-	// Persona switch: load "creative"
 	personaLoader.EXPECT().LoadPersona("/tmp/personas/creative.md").Return(&persona.Persona{
 		Name: "creative", Body: "# Creative\n\nYou are a creative assistant.",
 	}, nil)
@@ -921,7 +959,7 @@ func TestAgent_HandleMessage_WithPersonaSwitch(t *testing.T) {
 	embedder.EXPECT().GenerateEmbedding(gomock.Any(), gomock.Any()).Return(make([]float32, 768), nil)
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	resp, err := a.HandleMessage(context.Background(), "switch to creative")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
