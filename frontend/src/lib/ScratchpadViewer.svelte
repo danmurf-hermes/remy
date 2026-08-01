@@ -79,7 +79,11 @@
       rows="20"
     ></textarea>
     <div class="scratchpad-footer">
-      <span class="hint">Auto-saves after 2 seconds of inactivity. Press {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+S to save immediately.</span>
+      <span class="hint"
+        >Auto-saves after 2 seconds of inactivity. Press {navigator.platform.includes('Mac')
+          ? 'Cmd'
+          : 'Ctrl'}+S to save immediately.</span
+      >
     </div>
   {/if}
 </div>

@@ -42,8 +42,12 @@
   }
 
   function getConfidenceColor(confidence) {
-    if (confidence >= 0.8) { return '#34c759' }
-    if (confidence >= 0.5) { return '#ff9500' }
+    if (confidence >= 0.8) {
+      return '#34c759'
+    }
+    if (confidence >= 0.5) {
+      return '#ff9500'
+    }
     return '#ff3b30'
   }
 
@@ -115,13 +119,7 @@
                     </label>
                     <label>
                       Confidence:
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        bind:value={editConfidence}
-                      />
+                      <input type="range" min="0" max="1" step="0.05" bind:value={editConfidence} />
                       <span class="conf-value">{editConfidence.toFixed(2)}</span>
                     </label>
                   </div>
@@ -147,15 +145,26 @@
                     <span class="source-label">{fact.source || 'unknown'}</span>
                   </div>
                   <div class="confidence-bar-container">
-                    <div class="confidence-bar" style="width: {fact.confidence * 100}%; background: {getConfidenceColor(fact.confidence)};"></div>
+                    <div
+                      class="confidence-bar"
+                      style="width: {fact.confidence * 100}%; background: {getConfidenceColor(
+                        fact.confidence,
+                      )};"
+                    ></div>
                   </div>
                   <div class="confidence-label">
                     Confidence: {(fact.confidence * 100).toFixed(0)}%
                   </div>
                 </div>
                 <div class="card-actions">
-                  <button class="action-btn edit-btn" on:click={() => startEdit(fact)} title="Edit">✏️</button>
-                  <button class="action-btn delete-btn" on:click={() => confirmDelete(fact.id)} title="Delete">🗑️</button>
+                  <button class="action-btn edit-btn" on:click={() => startEdit(fact)} title="Edit"
+                    >✏️</button
+                  >
+                  <button
+                    class="action-btn delete-btn"
+                    on:click={() => confirmDelete(fact.id)}
+                    title="Delete">🗑️</button
+                  >
                 </div>
               {/if}
             </div>

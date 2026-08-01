@@ -70,12 +70,36 @@ export async function getFacts(category) {
   }
   // Mock data for testing
   const mockFacts = [
-    { id: '1', fact: 'User prefers dark mode', category: 'preferences', confidence: 0.9, source: 'consolidation', created_at: Date.now() - 86400000, updated_at: Date.now() - 3600000 },
-    { id: '2', fact: 'User works as a software engineer', category: 'personal', confidence: 0.85, source: 'consolidation', created_at: Date.now() - 172800000, updated_at: Date.now() - 7200000 },
-    { id: '3', fact: 'User likes Python and Go', category: 'preferences', confidence: 0.75, source: 'consolidation', created_at: Date.now() - 259200000, updated_at: Date.now() - 10800000 },
+    {
+      id: '1',
+      fact: 'User prefers dark mode',
+      category: 'preferences',
+      confidence: 0.9,
+      source: 'consolidation',
+      created_at: Date.now() - 86400000,
+      updated_at: Date.now() - 3600000,
+    },
+    {
+      id: '2',
+      fact: 'User works as a software engineer',
+      category: 'personal',
+      confidence: 0.85,
+      source: 'consolidation',
+      created_at: Date.now() - 172800000,
+      updated_at: Date.now() - 7200000,
+    },
+    {
+      id: '3',
+      fact: 'User likes Python and Go',
+      category: 'preferences',
+      confidence: 0.75,
+      source: 'consolidation',
+      created_at: Date.now() - 259200000,
+      updated_at: Date.now() - 10800000,
+    },
   ]
   if (category) {
-    return mockFacts.filter(f => f.category === category)
+    return mockFacts.filter((f) => f.category === category)
   }
   return mockFacts
 }
@@ -107,9 +131,33 @@ export async function getEpisodes(limit, offset) {
   }
   // Mock data for testing
   return [
-    { id: '1', summary: 'Discussed project architecture and decided on microservices approach', start_time: Date.now() - 86400000, end_time: Date.now() - 82800000, message_ids: 'a,b,c', importance: 0.8, topics: 'architecture,planning' },
-    { id: '2', summary: 'User asked about Go concurrency patterns', start_time: Date.now() - 172800000, end_time: Date.now() - 171000000, message_ids: 'd,e', importance: 0.5, topics: 'go,concurrency' },
-    { id: '3', summary: 'Debugged database migration issue together', start_time: Date.now() - 259200000, end_time: Date.now() - 257400000, message_ids: 'f,g,h', importance: 0.7, topics: 'database,migration,debugging' },
+    {
+      id: '1',
+      summary: 'Discussed project architecture and decided on microservices approach',
+      start_time: Date.now() - 86400000,
+      end_time: Date.now() - 82800000,
+      message_ids: 'a,b,c',
+      importance: 0.8,
+      topics: 'architecture,planning',
+    },
+    {
+      id: '2',
+      summary: 'User asked about Go concurrency patterns',
+      start_time: Date.now() - 172800000,
+      end_time: Date.now() - 171000000,
+      message_ids: 'd,e',
+      importance: 0.5,
+      topics: 'go,concurrency',
+    },
+    {
+      id: '3',
+      summary: 'Debugged database migration issue together',
+      start_time: Date.now() - 259200000,
+      end_time: Date.now() - 257400000,
+      message_ids: 'f,g,h',
+      importance: 0.7,
+      topics: 'database,migration,debugging',
+    },
   ]
 }
 
@@ -126,10 +174,34 @@ export async function getEntities() {
   }
   // Mock data for testing
   return [
-    { id: '1', name: 'User', type: 'person', description: 'The primary user of Remy', created_at: Date.now() - 86400000 },
-    { id: '2', name: 'Remy', type: 'ai', description: 'The personal AI assistant', created_at: Date.now() - 86400000 },
-    { id: '3', name: 'Go', type: 'language', description: 'Go programming language', created_at: Date.now() - 172800000 },
-    { id: '4', name: 'SQLite', type: 'technology', description: 'SQLite database engine', created_at: Date.now() - 172800000 },
+    {
+      id: '1',
+      name: 'User',
+      type: 'person',
+      description: 'The primary user of Remy',
+      created_at: Date.now() - 86400000,
+    },
+    {
+      id: '2',
+      name: 'Remy',
+      type: 'ai',
+      description: 'The personal AI assistant',
+      created_at: Date.now() - 86400000,
+    },
+    {
+      id: '3',
+      name: 'Go',
+      type: 'language',
+      description: 'Go programming language',
+      created_at: Date.now() - 172800000,
+    },
+    {
+      id: '4',
+      name: 'SQLite',
+      type: 'technology',
+      description: 'SQLite database engine',
+      created_at: Date.now() - 172800000,
+    },
   ]
 }
 
@@ -139,9 +211,30 @@ export async function getRelationships() {
   }
   // Mock data for testing
   return [
-    { id: '1', source_entity: 'User', target_entity: 'Remy', relationship: 'uses', confidence: 1.0, created_at: Date.now() - 86400000 },
-    { id: '2', source_entity: 'Remy', target_entity: 'Go', relationship: 'built_with', confidence: 1.0, created_at: Date.now() - 86400000 },
-    { id: '3', source_entity: 'Remy', target_entity: 'SQLite', relationship: 'uses', confidence: 1.0, created_at: Date.now() - 86400000 },
+    {
+      id: '1',
+      source_entity: 'User',
+      target_entity: 'Remy',
+      relationship: 'uses',
+      confidence: 1.0,
+      created_at: Date.now() - 86400000,
+    },
+    {
+      id: '2',
+      source_entity: 'Remy',
+      target_entity: 'Go',
+      relationship: 'built_with',
+      confidence: 1.0,
+      created_at: Date.now() - 86400000,
+    },
+    {
+      id: '3',
+      source_entity: 'Remy',
+      target_entity: 'SQLite',
+      relationship: 'uses',
+      confidence: 1.0,
+      created_at: Date.now() - 86400000,
+    },
   ]
 }
 
