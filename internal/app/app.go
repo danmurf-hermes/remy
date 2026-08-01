@@ -6,48 +6,56 @@ package app
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/config"
-	"github.com/danmurf/remy/internal/llm"
 	"github.com/danmurf/remy/internal/memory"
-	"github.com/danmurf/remy/internal/scheduler"
+	"github.com/danmurf/remy/internal/persona"
 )
+
+// Emitter defines the interface for emitting events to the frontend.
+// The Wails runtime provides the production implementation.
+type Emitter interface {
+	Emit(event string, data any) error
+}
+
+// AgentService defines the subset of agent.Agent methods the app needs,
+// making it easy to mock in tests.
+type AgentService interface {
+	HandleMessage(ctx context.Context, userMsg string) (*memory.Message, error)
+	HandleMessageStream(ctx context.Context, userMsg string) (<-chan agent.StreamChunk, error)
+	ListPersonas(ctx context.Context) ([]persona.Summary, error)
+	SetActivePersona(ctx context.Context, name string) error
+	ActivePersona() *persona.Persona
+	LoadActivePersona(ctx context.Context) error
+	ScheduleConsolidation(ctx context.Context) func()
+}
 
 // App is the main Wails application struct. Its exported methods become
 // bindings callable from the Svelte frontend.
 type App struct {
 	ctx               context.Context
-	agent             *agent.Agent
+	agent             AgentService
 	store             *memory.Store
 	cfg               *config.Config
+	emitter           Emitter
 	stopConsolidation func()
 	stopScheduler     func()
 }
 
 // NewApp creates a new App with the given dependencies.
-func NewApp(cfg *config.Config, store *memory.Store, llmProvider llm.Provider, embedder *memory.Embedder, personaLoader agent.PersonaLoader, sched *scheduler.Scheduler) (*App, error) {
-	agentCfg := &agent.Config{
-		WorkingMemoryTurns:        cfg.Memory.WorkingMemoryTurns,
-		UserID:                    "default-user",
-		SessionID:                 "default",
-		Interface:                 "gui",
-		PersonaDir:                cfg.Persona.Directory,
-		ActivePersona:             cfg.Persona.Active,
-		QuickConsolidationDelayMs: cfg.Memory.QuickConsolidationDelayMs,
-		DeepConsolidationDelayMs:  cfg.Memory.DeepConsolidationDelayMs,
-	}
-
-	a := agent.NewAgent(store, llmProvider, embedder, personaLoader, sched, agentCfg)
-
+func NewApp(cfg *config.Config, store *memory.Store, agentSvc AgentService) (*App, error) {
 	return &App{
-		agent: a,
+		agent: agentSvc,
 		store: store,
 		cfg:   cfg,
 	}, nil
+}
+
+// SetEmitter sets the event emitter for the app. Used to wire the Wails
+// runtime emitter after startup.
+func (a *App) SetEmitter(e Emitter) {
+	a.emitter = e
 }
 
 // Startup is called by Wails when the application starts. It initializes
@@ -218,7 +226,10 @@ func (a *App) GetActivePersona() string {
 }
 
 func (a *App) emit(event string, data any) error {
-	return nil // Wails runtime emits events; this is a no-op for testing
+	if a.emitter != nil {
+		return a.emitter.Emit(event, data)
+	}
+	return nil
 }
 
 // MessageDTO is a data transfer object for messages sent to the frontend.
@@ -257,7 +268,3 @@ func messageToDTO(msg *memory.Message) *MessageDTO {
 		Interface: msg.Interface,
 	}
 }
-
-// Ensure uuid is used
-var _ = uuid.NewString
-var _ = time.Now

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/app"
 	"github.com/danmurf/remy/internal/config"
 	"github.com/danmurf/remy/internal/llm"
@@ -18,12 +19,23 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 var version = "dev"
+
+// wailsEmitter implements app.Emitter using the Wails runtime.
+type wailsEmitter struct {
+	ctx context.Context
+}
+
+func (e wailsEmitter) Emit(event string, data any) error {
+	runtime.EventsEmit(e.ctx, event, data)
+	return nil
+}
 
 func main() {
 	cfgPath, err := config.ConfigPath()
@@ -66,7 +78,21 @@ func main() {
 
 	sched := scheduler.NewScheduler(store, nil)
 
-	application, err := app.NewApp(cfg, store, llmProvider, embedder, personaLoader, sched)
+	agentCfg := &agent.Config{
+		WorkingMemoryTurns:        cfg.Memory.WorkingMemoryTurns,
+		UserID:                    "default-user",
+		SessionID:                 "default",
+		Interface:                 "gui",
+		PersonaDir:                cfg.Persona.Directory,
+		ActivePersona:             cfg.Persona.Active,
+		QuickConsolidationDelayMs: cfg.Memory.QuickConsolidationDelayMs,
+		DeepConsolidationDelayMs:  cfg.Memory.DeepConsolidationDelayMs,
+	}
+
+	ag := agent.NewAgent(store, llmProvider, embedder, personaLoader, sched, agentCfg)
+	sched.SetAgent(ag)
+
+	application, err := app.NewApp(cfg, store, ag)
 	if err != nil {
 		_ = store.Close()
 		log.Fatalf("Error creating app: %v", err)
@@ -83,7 +109,10 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup:  application.Startup,
+		OnStartup: func(ctx context.Context) {
+			application.SetEmitter(wailsEmitter{ctx: ctx})
+			application.Startup(ctx)
+		},
 		OnShutdown: application.Shutdown,
 		Bind: []any{
 			application,
