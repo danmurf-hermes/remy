@@ -40,14 +40,15 @@ func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 // GetMessage retrieves a single message by its ID.
 func (s *Store) GetMessage(ctx context.Context, id string) (*Message, error) {
 	var msg Message
-	if err := s.scanRow(ctx, buildSelectByID(messageColumns, "messages", id), func(row rowScanner) error {
+	scanFn := func(row rowScanner) error {
 		var m Message
 		if err := row.Scan(&m.ID, &m.UserID, &m.Role, &m.Content, &m.Timestamp, &m.Interface, &m.SessionID); err != nil {
 			return fmt.Errorf("getting message: %w", err)
 		}
 		msg = m
 		return nil
-	}); err != nil {
+	}
+	if err := s.scanRow(ctx, buildSelectByID(messageColumns, "messages", id), scanFn); err != nil {
 		return nil, err
 	}
 	return &msg, nil
@@ -63,13 +64,15 @@ func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, 
 		Offset(uint64(offset)) //nolint:gosec // offset from user input
 
 	var messages []Message
-	if err := s.scanRows(ctx, qb, func(row rowScanner) error {
+	scanFn := func(row rowScanner) error {
 		msg, err := scanMessage(row)
 		if err != nil {
 			return fmt.Errorf("scanning message row: %w", err)
 		}
 		messages = append(messages, msg)
-	}, "querying messages"); err != nil {
+		return nil
+	}
+	if err := s.scanRows(ctx, qb, scanFn, "querying messages"); err != nil {
 		return nil, err
 	}
 	return messages, nil
@@ -84,13 +87,15 @@ func (s *Store) GetMessagesBySession(ctx context.Context, sessionID string) ([]M
 		OrderBy("timestamp ASC")
 
 	var messages []Message
-	if err := s.scanRows(ctx, qb, func(row rowScanner) error {
+	scanFn := func(row rowScanner) error {
 		msg, err := scanMessage(row)
 		if err != nil {
 			return fmt.Errorf("scanning message row: %w", err)
 		}
 		messages = append(messages, msg)
-	}, "querying messages by session"); err != nil {
+		return nil
+	}
+	if err := s.scanRows(ctx, qb, scanFn, "querying messages by session"); err != nil {
 		return nil, err
 	}
 	return messages, nil
