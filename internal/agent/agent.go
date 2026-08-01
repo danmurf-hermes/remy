@@ -8,6 +8,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -145,7 +146,7 @@ func (a *Agent) LoadActivePersona(ctx context.Context) error {
 	if a.cfg.PersonaDir == "" || a.cfg.ActivePersona == "" {
 		return nil
 	}
-	path := a.cfg.PersonaDir + "/" + a.cfg.ActivePersona + ".md"
+	path := filepath.Join(a.cfg.PersonaDir, a.cfg.ActivePersona+".md")
 	p, err := a.personaLoader.LoadPersona(path)
 	if err != nil {
 		if _, ok := err.(*persona.ErrPersonaNotFound); ok {
@@ -168,7 +169,7 @@ func (a *Agent) SetActivePersona(ctx context.Context, name string) error {
 	if a.cfg.PersonaDir == "" {
 		return fmt.Errorf("persona directory not configured")
 	}
-	path := a.cfg.PersonaDir + "/" + name + ".md"
+	path := filepath.Join(a.cfg.PersonaDir, name+".md")
 	p, err := a.personaLoader.LoadPersona(path)
 	if err != nil {
 		return fmt.Errorf("loading persona %q: %w", name, err)
@@ -183,10 +184,28 @@ func (a *Agent) ListPersonas(ctx context.Context) ([]persona.Summary, error) {
 	return a.personaLoader.ListPersonas(a.cfg.PersonaDir, a.cfg.ActivePersona)
 }
 
-// HandleMessage is the core agent loop. It processes a single user message
-// through the full pipeline: store, retrieve context, build prompt, call
-// LLM, store response, and return it.
-func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Message, error) {
+// contextBundle holds all the data prepared by prepareContext for use
+// by HandleMessage and HandleMessageStream.
+type contextBundle struct {
+	userMessage    *memory.Message
+	embeddingBytes []byte
+	episodes       []memory.Episode
+	facts          []memory.Fact
+	scratchpad     string
+	recentMessages []memory.Message
+	personaSwitch  string
+	upcomingTasks  string
+	prompt         PromptResult
+	userID         string
+	sessionID      string
+	interfaceName  string
+	now            int64
+}
+
+// prepareContext is the shared setup for HandleMessage and HandleMessageStream.
+// It saves the user message, generates embeddings, retrieves context, handles
+// persona switches, and builds the prompt.
+func (a *Agent) prepareContext(ctx context.Context, userMsg string) (*contextBundle, error) {
 	a.SignalActivity()
 	now := time.Now().UnixMilli()
 
@@ -244,16 +263,13 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 		return nil, fmt.Errorf("getting recent messages: %w", err)
 	}
 
-	// Check for persona switch request
 	personaSwitch := DetectPersonaSwitch(userMsg, a.activePersona)
 	if personaSwitch != "" {
 		if err := a.SetActivePersona(ctx, personaSwitch); err != nil {
-			// Log the error but continue with current persona
 			a.logActivity(ctx, "error", userMessage.ID, sessionID)
 		}
 	}
 
-	// Get upcoming tasks for prompt context
 	upcomingTasks, _ := a.scheduler.GetUpcomingTasks(ctx)
 
 	prompt := BuildPrompt(&PromptInput{
@@ -266,8 +282,34 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 		UpcomingTasks:  upcomingTasks,
 	})
 
+	return &contextBundle{
+		userMessage:    userMessage,
+		embeddingBytes: embeddingBytes,
+		episodes:       episodes,
+		facts:          facts,
+		scratchpad:     scratchpad,
+		recentMessages: recentMessages,
+		personaSwitch:  personaSwitch,
+		upcomingTasks:  upcomingTasks,
+		prompt:         prompt,
+		userID:         userID,
+		sessionID:      sessionID,
+		interfaceName:  interfaceName,
+		now:            now,
+	}, nil
+}
+
+// HandleMessage is the core agent loop. It processes a single user message
+// through the full pipeline: store, retrieve context, build prompt, call
+// LLM, store response, and return it.
+func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Message, error) {
+	cb, err := a.prepareContext(ctx, userMsg)
+	if err != nil {
+		return nil, err
+	}
+
 	llmResp, err := a.provider.Chat(ctx, llm.ChatRequest{
-		Messages: prompt.Messages,
+		Messages: cb.prompt.Messages,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("calling LLM: %w", err)
@@ -282,19 +324,19 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 	responseTime := time.Now().UnixMilli()
 	responseMessage := &memory.Message{
 		ID:        uuid.NewString(),
-		UserID:    userID,
+		UserID:    cb.userID,
 		Role:      "assistant",
 		Content:   responseContent,
 		Timestamp: responseTime,
-		Interface: interfaceName,
-		SessionID: sessionID,
+		Interface: cb.interfaceName,
+		SessionID: cb.sessionID,
 	}
 
 	if err := a.store.SaveMessage(ctx, responseMessage); err != nil {
 		return nil, fmt.Errorf("saving response message: %w", err)
 	}
 
-	a.logActivity(ctx, "message_sent", responseMessage.ID, sessionID)
+	a.logActivity(ctx, "message_sent", responseMessage.ID, cb.sessionID)
 
 	respEmbedding, err := a.embedder.GenerateEmbedding(ctx, responseContent)
 	if err != nil {
@@ -326,87 +368,16 @@ type StreamChunk struct {
 func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan StreamChunk, error) {
 	ch := make(chan StreamChunk, 64)
 
-	a.SignalActivity()
-	now := time.Now().UnixMilli()
-
-	userID := a.cfg.UserID
-	sessionID := a.cfg.SessionID
-	interfaceName := a.cfg.Interface
-
-	userMessage := &memory.Message{
-		ID:        uuid.NewString(),
-		UserID:    userID,
-		Role:      "user",
-		Content:   userMsg,
-		Timestamp: now,
-		Interface: interfaceName,
-		SessionID: sessionID,
-	}
-
-	if err := a.store.SaveMessage(ctx, userMessage); err != nil {
-		return nil, fmt.Errorf("saving user message: %w", err)
-	}
-
-	a.logActivity(ctx, "message_received", userMessage.ID, sessionID)
-
-	userEmbedding, err := a.embedder.GenerateEmbedding(ctx, userMsg)
+	cb, err := a.prepareContext(ctx, userMsg)
 	if err != nil {
-		return nil, fmt.Errorf("generating embedding: %w", err)
+		return nil, err
 	}
-
-	embeddingBytes, err := memory.SerializeVector(userEmbedding)
-	if err != nil {
-		return nil, fmt.Errorf("serializing embedding: %w", err)
-	}
-
-	if err := a.store.SaveMessageVector(ctx, userMessage.ID, embeddingBytes); err != nil {
-		return nil, fmt.Errorf("saving message vector: %w", err)
-	}
-
-	episodes, err := a.store.SearchEpisodes(ctx, embeddingBytes, 5)
-	if err != nil {
-		return nil, fmt.Errorf("searching episodes: %w", err)
-	}
-
-	facts, err := a.store.SearchFacts(ctx, embeddingBytes, 5)
-	if err != nil {
-		return nil, fmt.Errorf("searching facts: %w", err)
-	}
-
-	scratchpad, err := a.store.GetScratchpad(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting scratchpad: %w", err)
-	}
-
-	recentMessages, err := a.store.GetMessages(ctx, a.cfg.WorkingMemoryTurns, 0)
-	if err != nil {
-		return nil, fmt.Errorf("getting recent messages: %w", err)
-	}
-
-	personaSwitch := DetectPersonaSwitch(userMsg, a.activePersona)
-	if personaSwitch != "" {
-		if err := a.SetActivePersona(ctx, personaSwitch); err != nil {
-			a.logActivity(ctx, "error", userMessage.ID, sessionID)
-		}
-	}
-
-	upcomingTasks, _ := a.scheduler.GetUpcomingTasks(ctx)
-
-	prompt := BuildPrompt(&PromptInput{
-		Scratchpad:     scratchpad,
-		Episodes:       episodes,
-		Facts:          facts,
-		RecentMessages: recentMessages,
-		UserMessage:    userMsg,
-		Persona:        a.activePersona,
-		UpcomingTasks:  upcomingTasks,
-	})
 
 	go func() {
 		defer close(ch)
 
 		streamCh, err := a.provider.ChatStream(ctx, llm.ChatRequest{
-			Messages: prompt.Messages,
+			Messages: cb.prompt.Messages,
 		})
 		if err != nil {
 			ch <- StreamChunk{Error: err.Error()}
@@ -429,12 +400,12 @@ func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan
 		responseTime := time.Now().UnixMilli()
 		responseMessage := &memory.Message{
 			ID:        uuid.NewString(),
-			UserID:    userID,
+			UserID:    cb.userID,
 			Role:      "assistant",
 			Content:   responseContent,
 			Timestamp: responseTime,
-			Interface: interfaceName,
-			SessionID: sessionID,
+			Interface: cb.interfaceName,
+			SessionID: cb.sessionID,
 		}
 
 		if err := a.store.SaveMessage(ctx, responseMessage); err != nil {
@@ -442,14 +413,23 @@ func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan
 			return
 		}
 
-		a.logActivity(ctx, "message_sent", responseMessage.ID, sessionID)
+		a.logActivity(ctx, "message_sent", responseMessage.ID, cb.sessionID)
 
 		respEmbedding, err := a.embedder.GenerateEmbedding(ctx, responseContent)
-		if err == nil {
-			respEmbeddingBytes, err := memory.SerializeVector(respEmbedding)
-			if err == nil {
-				_ = a.store.SaveMessageVector(ctx, responseMessage.ID, respEmbeddingBytes)
-			}
+		if err != nil {
+			ch <- StreamChunk{Error: fmt.Errorf("generating response embedding: %w", err).Error()}
+			return
+		}
+
+		respEmbeddingBytes, err := memory.SerializeVector(respEmbedding)
+		if err != nil {
+			ch <- StreamChunk{Error: fmt.Errorf("serializing response embedding: %w", err).Error()}
+			return
+		}
+
+		if err := a.store.SaveMessageVector(ctx, responseMessage.ID, respEmbeddingBytes); err != nil {
+			ch <- StreamChunk{Error: fmt.Errorf("saving response message vector: %w", err).Error()}
+			return
 		}
 
 		ch <- StreamChunk{Done: true}

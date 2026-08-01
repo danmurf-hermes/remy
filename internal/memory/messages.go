@@ -7,6 +7,16 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+var messageColumns = []string{"id", "user_id", "role", "content", "timestamp", "interface", "session_id"}
+
+func scanMessage(row rowScanner) (Message, error) {
+	var msg Message
+	if err := row.Scan(&msg.ID, &msg.UserID, &msg.Role, &msg.Content, &msg.Timestamp, &msg.Interface, &msg.SessionID); err != nil {
+		return Message{}, err
+	}
+	return msg, nil
+}
+
 // SaveMessage inserts a new message into the database.
 func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 	s.mu.Lock()
@@ -29,21 +39,17 @@ func (s *Store) SaveMessage(ctx context.Context, msg *Message) error {
 
 // GetMessage retrieves a single message by its ID.
 func (s *Store) GetMessage(ctx context.Context, id string) (*Message, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "user_id", "role", "content", "timestamp", "interface", "session_id").
-		From("messages").
-		Where(sq.Eq{"id": id}).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	row := s.db.QueryRowContext(ctx, query, args...)
 	var msg Message
-	if err := row.Scan(&msg.ID, &msg.UserID, &msg.Role, &msg.Content, &msg.Timestamp, &msg.Interface, &msg.SessionID); err != nil {
-		return nil, fmt.Errorf("getting message: %w", err)
+	scanFn := func(row rowScanner) error {
+		var m Message
+		if err := row.Scan(&m.ID, &m.UserID, &m.Role, &m.Content, &m.Timestamp, &m.Interface, &m.SessionID); err != nil {
+			return fmt.Errorf("getting message: %w", err)
+		}
+		msg = m
+		return nil
+	}
+	if err := s.scanRow(ctx, buildSelectByID(messageColumns, "messages", id), scanFn); err != nil {
+		return nil, err
 	}
 	return &msg, nil
 }
@@ -51,64 +57,46 @@ func (s *Store) GetMessage(ctx context.Context, id string) (*Message, error) {
 // GetMessages returns a paginated list of all messages, ordered by most
 // recent first.
 func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "user_id", "role", "content", "timestamp", "interface", "session_id").
+	qb := sb.Select(messageColumns...).
 		From("messages").
 		OrderBy("timestamp DESC").
-		Limit(uint64(limit)).   //nolint:gosec // limit from user input
-		Offset(uint64(offset)). //nolint:gosec // offset from user input
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying messages: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		Limit(uint64(limit)).  //nolint:gosec // limit from user input
+		Offset(uint64(offset)) //nolint:gosec // offset from user input
 
 	var messages []Message
-	for rows.Next() {
-		var msg Message
-		if err := rows.Scan(&msg.ID, &msg.UserID, &msg.Role, &msg.Content, &msg.Timestamp, &msg.Interface, &msg.SessionID); err != nil {
-			return nil, fmt.Errorf("scanning message row: %w", err)
+	scanFn := func(row rowScanner) error {
+		msg, err := scanMessage(row)
+		if err != nil {
+			return fmt.Errorf("scanning message row: %w", err)
 		}
 		messages = append(messages, msg)
+		return nil
 	}
-	return messages, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying messages"); err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 
 // GetMessagesBySession returns all messages for a given session ID, ordered
 // by timestamp ascending.
 func (s *Store) GetMessagesBySession(ctx context.Context, sessionID string) ([]Message, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "user_id", "role", "content", "timestamp", "interface", "session_id").
+	qb := sb.Select(messageColumns...).
 		From("messages").
 		Where(sq.Eq{"session_id": sessionID}).
-		OrderBy("timestamp ASC").
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying messages by session: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		OrderBy("timestamp ASC")
 
 	var messages []Message
-	for rows.Next() {
-		var msg Message
-		if err := rows.Scan(&msg.ID, &msg.UserID, &msg.Role, &msg.Content, &msg.Timestamp, &msg.Interface, &msg.SessionID); err != nil {
-			return nil, fmt.Errorf("scanning message row: %w", err)
+	scanFn := func(row rowScanner) error {
+		msg, err := scanMessage(row)
+		if err != nil {
+			return fmt.Errorf("scanning message row: %w", err)
 		}
 		messages = append(messages, msg)
+		return nil
 	}
-	return messages, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying messages by session"); err != nil {
+		return nil, err
+	}
+	return messages, nil
 }

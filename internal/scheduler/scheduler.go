@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +39,7 @@ type Agent interface {
 // Scheduler manages task creation, cancellation, and firing. It runs a
 // background loop that checks for due tasks on a configurable interval.
 type Scheduler struct {
+	mu            sync.RWMutex
 	store         Store
 	agent         Agent
 	stopCh        chan struct{}
@@ -53,6 +55,15 @@ func NewScheduler(store Store, agent Agent) *Scheduler {
 		stopCh:        make(chan struct{}),
 		checkInterval: 30 * time.Second,
 	}
+}
+
+// SetAgent sets the agent after construction. This is needed when the agent
+// and scheduler have a circular dependency (agent needs scheduler, scheduler
+// needs agent). Must be called before Start.
+func (s *Scheduler) SetAgent(a Agent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.agent = a
 }
 
 // NewSchedulerWithInterval creates a new Scheduler with a custom check interval.
@@ -125,7 +136,13 @@ func (s *Scheduler) fireTask(ctx context.Context, task *memory.Task) {
 	}
 
 	// Fire through the agent
-	if _, err := s.agent.HandleMessage(ctx, userMsg); err != nil {
+	s.mu.RLock()
+	agent := s.agent
+	s.mu.RUnlock()
+	if agent == nil {
+		return
+	}
+	if _, err := agent.HandleMessage(ctx, userMsg); err != nil {
 		return
 	}
 

@@ -16,12 +16,19 @@ linters:
     - misspell
     - prealloc
     - revive
+    - gocyclo
+    - dupl
+    - nilnil
   settings:
     gocritic:
       enabled-tags:
         - diagnostic
         - performance
         - style
+    gocyclo:
+      min-complexity: 15
+    dupl:
+      threshold: 150
     revive:
       severity: warning
       rules:
@@ -76,3 +83,4 @@ linters:
 formatters:
   enable:
     - gofmt
+    - gofumpt

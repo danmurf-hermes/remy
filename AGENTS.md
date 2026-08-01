@@ -4,7 +4,7 @@
 
 | Action | Command |
 |--------|---------|
-| Build binary | `go build -ldflags="-X main.Version=$(git describe --tags 2>/dev/null || echo dev)" -o build/remy ./cmd/remy` |
+| Build binary | `go build -ldflags="-X main.Version=$(git describe --tags 2>/dev/null || echo dev)" -o build/remy .` |
 | Dev (hot-reload GUI) | `wails dev` |
 | Test all Go | `go test ./internal/... -cover` |
 | Test single pkg | `go test ./internal/agent/... -cover` |
@@ -19,7 +19,7 @@
 ## Architecture
 
 - **Go module**: `github.com/danmurf/remy` (Go 1.26.5)
-- **Entrypoint**: `cmd/remy/main.go` — currently a CLI stub, will become Wails app
+- **Entrypoint**: `main.go` (repo root) — Wails app entrypoint
 - **Internal packages**: `config/`, `llm/`, `memory/`, `agent/` — all tested
 - **Frontend**: Svelte 4 + Vite + Vitest in `frontend/`
 - **GUI framework**: Wails v2 (Go backend + Svelte frontend, single binary)

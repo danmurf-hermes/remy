@@ -7,6 +7,16 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+var factColumns = []string{"id", "fact", "category", "confidence", "source", "created_at", "updated_at"}
+
+func scanFact(row rowScanner) (Fact, error) {
+	var f Fact
+	if err := row.Scan(&f.ID, &f.Fact, &f.Category, &f.Confidence, &f.Source, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		return Fact{}, err
+	}
+	return f, nil
+}
+
 // SaveFact inserts a new fact into the database.
 func (s *Store) SaveFact(ctx context.Context, fact *Fact) error {
 	s.mu.Lock()
@@ -29,21 +39,17 @@ func (s *Store) SaveFact(ctx context.Context, fact *Fact) error {
 
 // GetFact retrieves a single fact by its ID.
 func (s *Store) GetFact(ctx context.Context, id string) (*Fact, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "fact", "category", "confidence", "source", "created_at", "updated_at").
-		From("facts").
-		Where(sq.Eq{"id": id}).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	row := s.db.QueryRowContext(ctx, query, args...)
 	var f Fact
-	if err := row.Scan(&f.ID, &f.Fact, &f.Category, &f.Confidence, &f.Source, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		return nil, fmt.Errorf("getting fact: %w", err)
+	scanFn := func(row rowScanner) error {
+		var fac Fact
+		if err := row.Scan(&fac.ID, &fac.Fact, &fac.Category, &fac.Confidence, &fac.Source, &fac.CreatedAt, &fac.UpdatedAt); err != nil {
+			return fmt.Errorf("getting fact: %w", err)
+		}
+		f = fac
+		return nil
+	}
+	if err := s.scanRow(ctx, buildSelectByID(factColumns, "facts", id), scanFn); err != nil {
+		return nil, err
 	}
 	return &f, nil
 }
@@ -51,66 +57,48 @@ func (s *Store) GetFact(ctx context.Context, id string) (*Fact, error) {
 // GetFacts returns a paginated list of all facts, ordered by most recently
 // updated.
 func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "fact", "category", "confidence", "source", "created_at", "updated_at").
+	qb := sb.Select(factColumns...).
 		From("facts").
 		OrderBy("updated_at DESC").
-		Limit(uint64(limit)).   //nolint:gosec // limit from user input
-		Offset(uint64(offset)). //nolint:gosec // offset from user input
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying facts: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		Limit(uint64(limit)).  //nolint:gosec // limit from user input
+		Offset(uint64(offset)) //nolint:gosec // offset from user input
 
 	var facts []Fact
-	for rows.Next() {
-		var f Fact
-		if err := rows.Scan(&f.ID, &f.Fact, &f.Category, &f.Confidence, &f.Source, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scanning fact row: %w", err)
+	scanFn := func(row rowScanner) error {
+		f, err := scanFact(row)
+		if err != nil {
+			return fmt.Errorf("scanning fact row: %w", err)
 		}
 		facts = append(facts, f)
+		return nil
 	}
-	return facts, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying facts"); err != nil {
+		return nil, err
+	}
+	return facts, nil
 }
 
 // GetFactsByCategory returns all facts in a given category, ordered by
 // confidence descending.
 func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "fact", "category", "confidence", "source", "created_at", "updated_at").
+	qb := sb.Select(factColumns...).
 		From("facts").
 		Where(sq.Eq{"category": category}).
-		OrderBy("confidence DESC").
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying facts by category: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		OrderBy("confidence DESC")
 
 	var facts []Fact
-	for rows.Next() {
-		var f Fact
-		if err := rows.Scan(&f.ID, &f.Fact, &f.Category, &f.Confidence, &f.Source, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scanning fact row: %w", err)
+	scanFn := func(row rowScanner) error {
+		f, err := scanFact(row)
+		if err != nil {
+			return fmt.Errorf("scanning fact row: %w", err)
 		}
 		facts = append(facts, f)
+		return nil
 	}
-	return facts, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying facts by category"); err != nil {
+		return nil, err
+	}
+	return facts, nil
 }
 
 // UpdateFact updates the fact text, category, confidence, and source of an
@@ -160,32 +148,23 @@ func (s *Store) DeleteFact(ctx context.Context, id string) error {
 // SearchFacts performs a vector similarity search over facts using the
 // given embedding, returning the top-N most similar facts.
 func (s *Store) SearchFacts(ctx context.Context, embedding []byte, limit int) ([]Fact, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("f.id", "f.fact", "f.category", "f.confidence", "f.source", "f.created_at", "f.updated_at").
+	qb := sb.Select("f.id", "f.fact", "f.category", "f.confidence", "f.source", "f.created_at", "f.updated_at").
 		From("facts f").
-		JoinClause(sq.Expr("INNER JOIN (SELECT id, distance FROM fact_vectors WHERE embedding MATCH ? ORDER BY distance LIMIT ?) fv ON fv.id = f.id", embedding, limit)).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building search query: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("searching facts: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		JoinClause(sq.Expr("INNER JOIN (SELECT id, distance FROM fact_vectors WHERE embedding MATCH ? ORDER BY distance LIMIT ?) fv ON fv.id = f.id", embedding, limit))
 
 	var facts []Fact
-	for rows.Next() {
-		var f Fact
-		if err := rows.Scan(&f.ID, &f.Fact, &f.Category, &f.Confidence, &f.Source, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scanning fact row: %w", err)
+	scanFn := func(row rowScanner) error {
+		f, err := scanFact(row)
+		if err != nil {
+			return fmt.Errorf("scanning fact row: %w", err)
 		}
 		facts = append(facts, f)
+		return nil
 	}
-	return facts, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "searching facts"); err != nil {
+		return nil, err
+	}
+	return facts, nil
 }
 
 // SaveEntity inserts a new entity into the database.
@@ -210,53 +189,40 @@ func (s *Store) SaveEntity(ctx context.Context, entity Entity) error {
 
 // GetEntity retrieves a single entity by its ID.
 func (s *Store) GetEntity(ctx context.Context, id string) (*Entity, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "name", "type", "description", "created_at").
-		From("entities").
-		Where(sq.Eq{"id": id}).
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	row := s.db.QueryRowContext(ctx, query, args...)
 	var e Entity
-	if err := row.Scan(&e.ID, &e.Name, &e.Type, &e.Description, &e.CreatedAt); err != nil {
-		return nil, fmt.Errorf("getting entity: %w", err)
+	scanFn := func(row rowScanner) error {
+		var ent Entity
+		if err := row.Scan(&ent.ID, &ent.Name, &ent.Type, &ent.Description, &ent.CreatedAt); err != nil {
+			return fmt.Errorf("getting entity: %w", err)
+		}
+		e = ent
+		return nil
+	}
+	if err := s.scanRow(ctx, buildSelectByID([]string{"id", "name", "type", "description", "created_at"}, "entities", id), scanFn); err != nil {
+		return nil, err
 	}
 	return &e, nil
 }
 
 // GetEntities returns all entities ordered by name.
 func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "name", "type", "description", "created_at").
+	qb := sb.Select("id", "name", "type", "description", "created_at").
 		From("entities").
-		OrderBy("name ASC").
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying entities: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+		OrderBy("name ASC")
 
 	var entities []Entity
-	for rows.Next() {
+	scanFn := func(row rowScanner) error {
 		var e Entity
-		if err := rows.Scan(&e.ID, &e.Name, &e.Type, &e.Description, &e.CreatedAt); err != nil {
-			return nil, fmt.Errorf("scanning entity row: %w", err)
+		if err := row.Scan(&e.ID, &e.Name, &e.Type, &e.Description, &e.CreatedAt); err != nil {
+			return fmt.Errorf("scanning entity row: %w", err)
 		}
 		entities = append(entities, e)
+		return nil
 	}
-	return entities, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying entities"); err != nil {
+		return nil, err
+	}
+	return entities, nil
 }
 
 // SaveRelationship inserts a new relationship between two entities into
@@ -282,29 +248,20 @@ func (s *Store) SaveRelationship(ctx context.Context, rel *Relationship) error {
 
 // GetRelationships returns all relationships in the database.
 func (s *Store) GetRelationships(ctx context.Context) ([]Relationship, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	query, args, err := sb.Select("id", "source_entity", "target_entity", "relationship", "confidence", "created_at").
-		From("relationships").
-		ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("building select: %w", err)
-	}
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("querying relationships: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
+	qb := sb.Select("id", "source_entity", "target_entity", "relationship", "confidence", "created_at").
+		From("relationships")
 
 	var relationships []Relationship
-	for rows.Next() {
+	scanFn := func(row rowScanner) error {
 		var r Relationship
-		if err := rows.Scan(&r.ID, &r.SourceEntity, &r.TargetEntity, &r.Relationship, &r.Confidence, &r.CreatedAt); err != nil {
-			return nil, fmt.Errorf("scanning relationship row: %w", err)
+		if err := row.Scan(&r.ID, &r.SourceEntity, &r.TargetEntity, &r.Relationship, &r.Confidence, &r.CreatedAt); err != nil {
+			return fmt.Errorf("scanning relationship row: %w", err)
 		}
 		relationships = append(relationships, r)
+		return nil
 	}
-	return relationships, rows.Err()
+	if err := s.scanRows(ctx, qb, scanFn, "querying relationships"); err != nil {
+		return nil, err
+	}
+	return relationships, nil
 }

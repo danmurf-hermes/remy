@@ -8,6 +8,7 @@ import (
 	"github.com/danmurf/remy/internal/persona"
 )
 
+//nolint:gocyclo // table-driven test with many cases
 func TestLoadPersona(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -307,6 +308,7 @@ body`,
 	}
 }
 
+//nolint:gocyclo // table-driven test with many cases
 func TestSavePersona(t *testing.T) {
 	tests := []struct {
 		name    string

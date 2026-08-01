@@ -28,6 +28,7 @@ func TestNewOllamaClient(t *testing.T) {
 	}
 }
 
+//nolint:gocyclo // table-driven test with many cases
 func TestChat(t *testing.T) {
 	tests := []struct {
 		name    string
