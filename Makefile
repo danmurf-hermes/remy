@@ -1,8 +1,9 @@
-.PHONY: build dev test lint lint-go lint-frontend fmt clean pre-commit
+.PHONY: build dev test lint lint-go lint-frontend fmt clean pre-commit release release-dry-run
 
 BINARY_NAME=remy
 BUILD_DIR=build
 VERSION=$(shell git describe --tags 2>/dev/null || echo "dev")
+LDFLAGS=-ldflags="-X main.Version=$(VERSION) -s -w"
 
 build:
 	@mkdir -p $(BUILD_DIR)
@@ -34,3 +35,32 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf frontend/node_modules
 	rm -rf frontend/dist
+
+# Cross-platform release builds
+release: frontend-deps frontend-build
+	@mkdir -p $(BUILD_DIR)/release
+	@echo "Building for linux/amd64..."
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/release/$(BINARY_NAME)-linux-amd64 .
+	@echo "Building for linux/arm64..."
+	@GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/release/$(BINARY_NAME)-linux-arm64 .
+	@echo "Building for darwin/amd64..."
+	@GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/release/$(BINARY_NAME)-darwin-amd64 .
+	@echo "Building for darwin/arm64..."
+	@GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/release/$(BINARY_NAME)-darwin-arm64 .
+	@echo "Building for windows/amd64..."
+	@GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(BUILD_DIR)/release/$(BINARY_NAME)-windows-amd64.exe .
+	@echo "Release builds complete:"
+	@ls -lh $(BUILD_DIR)/release/
+
+release-dry-run:
+	@echo "=== Dry run: would build for all platforms ==="
+	@echo "Targets: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64"
+	@echo "Version: $(VERSION)"
+	@echo "LDFLAGS: $(LDFLAGS)"
+	@echo "Run 'make release' to actually build."
+
+frontend-deps:
+	cd frontend && npm ci
+
+frontend-build:
+	cd frontend && npm run build
