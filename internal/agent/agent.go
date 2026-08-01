@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,18 @@ type Store interface {
 	UpdateScratchpad(ctx context.Context, content string) error
 	LogActivity(ctx context.Context, entry *memory.ActivityEntry) error
 	SaveMessageVector(ctx context.Context, messageID string, embedding []byte) error
+	SaveEpisode(ctx context.Context, ep *memory.Episode) error
+	SaveEpisodeVector(ctx context.Context, episodeID string, embedding []byte) error
+	SaveFact(ctx context.Context, fact *memory.Fact) error
+	SaveFactVector(ctx context.Context, factID string, embedding []byte) error
+	GetFacts(ctx context.Context, limit, offset int) ([]memory.Fact, error)
+	GetEpisodes(ctx context.Context, limit, offset int) ([]memory.Episode, error)
+	GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([]memory.Episode, error)
+	UpdateFact(ctx context.Context, fact *memory.Fact) error
+	SaveEntity(ctx context.Context, entity memory.Entity) error
+	SaveRelationship(ctx context.Context, rel *memory.Relationship) error
+	GetEntities(ctx context.Context) ([]memory.Entity, error)
+	GetRelationships(ctx context.Context) ([]memory.Relationship, error)
 }
 
 // Embedder defines the interface for generating vector embeddings.
@@ -47,22 +60,26 @@ type PersonaLoader interface {
 
 // Config holds configuration for the agent's behavior.
 type Config struct {
-	WorkingMemoryTurns int
-	UserID             string
-	SessionID          string
-	Interface          string
-	PersonaDir         string
-	ActivePersona      string
+	WorkingMemoryTurns        int
+	UserID                    string
+	SessionID                 string
+	Interface                 string
+	PersonaDir                string
+	ActivePersona             string
+	QuickConsolidationDelayMs int
+	DeepConsolidationDelayMs  int
 }
 
 // DefaultConfig returns a Config with sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		WorkingMemoryTurns: 20,
-		UserID:             "default-user",
-		SessionID:          "default",
-		Interface:          "gui",
-		ActivePersona:      "default",
+		WorkingMemoryTurns:        20,
+		UserID:                    "default-user",
+		SessionID:                 "default",
+		Interface:                 "gui",
+		ActivePersona:             "default",
+		QuickConsolidationDelayMs: 300000,
+		DeepConsolidationDelayMs:  1800000,
 	}
 }
 
@@ -76,18 +93,32 @@ type Agent struct {
 	personaLoader PersonaLoader
 	cfg           *Config
 	activePersona *persona.Persona
+
+	lastActivityUnixMs atomic.Int64
+	consolidationCh    chan consolidationSignal
+	stopCh             chan struct{}
+}
+
+type consolidationSignal struct {
+	ctx   context.Context
+	quick bool
+	deep  bool
 }
 
 // NewAgent creates a new Agent with the given store, LLM provider,
 // embedder, persona loader, and configuration.
 func NewAgent(store Store, provider llm.Provider, embedder Embedder, personaLoader PersonaLoader, cfg *Config) *Agent {
-	return &Agent{
-		store:         store,
-		provider:      provider,
-		embedder:      embedder,
-		personaLoader: personaLoader,
-		cfg:           cfg,
+	a := &Agent{
+		store:           store,
+		provider:        provider,
+		embedder:        embedder,
+		personaLoader:   personaLoader,
+		cfg:             cfg,
+		consolidationCh: make(chan consolidationSignal, 1),
+		stopCh:          make(chan struct{}),
 	}
+	a.lastActivityUnixMs.Store(time.Now().UnixMilli())
+	return a
 }
 
 // LoadActivePersona loads the active persona from disk. If the persona
@@ -138,6 +169,7 @@ func (a *Agent) ListPersonas(ctx context.Context) ([]persona.Summary, error) {
 // through the full pipeline: store, retrieve context, build prompt, call
 // LLM, store response, and return it.
 func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Message, error) {
+	a.SignalActivity()
 	now := time.Now().UnixMilli()
 
 	userID := a.cfg.UserID

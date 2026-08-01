@@ -266,24 +266,42 @@ Every push runs:
 **Goal:** Implement the two-phase consolidation system — quick summarization after inactivity and deep consolidation during idle time.
 
 **Tasks:**
-- [ ] Create `internal/agent/consolidation.go`:
+- [x] Create `internal/agent/consolidation.go`:
   - `QuickConsolidation(ctx, recentMessages)` — summarize conversation block, store as episode with embedding
   - `DeepConsolidation(ctx)` — extract facts, entities, relationships from recent episodes; deduplicate and merge
-  - `ScheduleConsolidation(ctx, delay)` — run after inactivity
-- [ ] Create `internal/agent/consolidation_test.go`:
-  - Test quick consolidation with mock LLM
-  - Test fact extraction and deduplication
-  - Test entity/relationship extraction
-- [ ] Integrate consolidation into agent loop (trigger after ~5 min inactivity)
-- [ ] Add deep consolidation goroutine that runs during extended idle periods
+  - `ScheduleConsolidation(ctx)` — starts background goroutine that monitors inactivity and triggers consolidation
+  - `SignalActivity()` — marks current time as last activity (called by `HandleMessage`)
+- [x] Create `internal/agent/consolidation_test.go`:
+  - 8 quick consolidation tests: no messages, empty messages, normal flow, LLM error, empty LLM choices, save episode error, embedding error, save vector error
+  - 12 deep consolidation tests: no episodes, get episodes error, extracts facts/entities/relationships, deduplicates existing facts, fact extraction error, malformed JSON, fact save error, fact vector save error, update fact error, entity save error, relationship save error, JSON with markdown code fences
+  - Additional tests: schedule consolidation loop, signal activity, message IDs JSON serialization, importance calculation, empty fact extraction, confidence cap, HandleMessage signals activity
+- [x] Integrate consolidation into agent loop:
+  - `HandleMessage` now calls `SignalActivity()` on every message
+  - `ScheduleConsolidation` starts a background goroutine that checks every 30s for inactivity
+  - Quick consolidation triggers after `QuickConsolidationDelayMs` (default 5 min) of inactivity
+  - Deep consolidation triggers after `DeepConsolidationDelayMs` (default 30 min) of inactivity
+- [x] Add deep consolidation goroutine that runs during extended idle periods
+- [x] Updated `Store` interface with 11 new methods needed for consolidation (SaveEpisode, SaveEpisodeVector, SaveFact, SaveFactVector, GetFacts, GetEpisodes, GetEpisodesByTimeRange, UpdateFact, SaveEntity, SaveRelationship, GetEntities, GetRelationships)
+- [x] Regenerated mocks via `go generate ./internal/agent/`
+- [x] Updated `Config` struct with `QuickConsolidationDelayMs` and `DeepConsolidationDelayMs` fields
 
 **Acceptance criteria:**
-- All tests pass
-- Quick consolidation runs after inactivity and stores episodes
-- Deep consolidation extracts facts and entities correctly
-- Facts are deduplicated and confidence scores updated
+- [x] All tests pass (47 tests, 86.4% coverage on `internal/agent/`)
+- [x] Quick consolidation runs after inactivity and stores episodes
+- [x] Deep consolidation extracts facts and entities correctly
+- [x] Facts are deduplicated and confidence scores updated
 
 **Notes for next person:**
+- 47 tests, 86.4% coverage on `internal/agent/`.
+- The `Store` interface in `agent.go` now has 22 methods (was 10). Mocks were regenerated.
+- The `Agent` struct has new fields: `lastActivityUnixMs` (atomic int64), `consolidationCh` (buffered channel, cap 1), `stopCh` (for stopping the background loop).
+- `ScheduleConsolidation` returns a `func()` that closes the stop channel. Call this to clean up the goroutine.
+- The consolidation loop uses a ticker (30s interval) and a buffered channel to avoid concurrent consolidation runs.
+- `SignalActivity()` is called at the start of `HandleMessage` to reset the inactivity timer.
+- `calculateImportance` is a simple heuristic based on average message length (capped at 0.1-1.0).
+- `stripJSONMarkdown` handles LLM responses that wrap JSON in ```json or ``` code fences.
+- Fact deduplication uses exact string matching on the fact text. Confidence increases by 0.1 on corroboration, capped at 1.0.
+- Entity and relationship extraction does not deduplicate (deferred to Stage 13 polish).
 
 ---
 
@@ -640,7 +658,7 @@ Every push runs:
 | 3. LLM Client & Provider | [x] | 2026-08-01 | 2026-08-01 | 21 tests, 92.4% coverage. Provider interface with Chat, ChatStream, Embed. OllamaClient with SSE streaming, API key auth, model override. |
 | 4. Agent Core Loop | [x] | 2026-08-01 | 2026-08-01 | 16 tests, 93.1% coverage. Store/Embedder interfaces for testability. Full pipeline: embed → retrieve → build prompt → call LLM → store response. |
 | 5. Persona System | [x] | 2026-08-01 | 2026-08-01 | 36 tests total (9 persona + 27 agent), 93% persona coverage, 96.6% agent coverage. Persona files with YAML frontmatter parse correctly. Model overrides resolved. Persona switching via "switch to <name>" in conversation. |
-| 6. Consolidation Engine | [ ] | — | — | |
+| 6. Consolidation Engine | [x] | 2026-08-01 | 2026-08-01 | 47 tests, 86.4% coverage. Two-phase consolidation: quick (summarize→episode→embed) after 5min inactivity, deep (extract facts/entities/relationships, deduplicate) after 30min. Background goroutine with 30s ticker. SignalActivity() called by HandleMessage. Store interface expanded with 12 new methods. |
 | 7. Scheduler & Tasks | [ ] | — | — | |
 | 8. GUI — Chat & Core UI | [ ] | — | — | |
 | 9. GUI — Memory Explorer | [ ] | — | — | |

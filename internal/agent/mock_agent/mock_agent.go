@@ -42,6 +42,66 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
+// GetEntities mocks base method.
+func (m *MockStore) GetEntities(ctx context.Context) ([]memory.Entity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEntities", ctx)
+	ret0, _ := ret[0].([]memory.Entity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEntities indicates an expected call of GetEntities.
+func (mr *MockStoreMockRecorder) GetEntities(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEntities", reflect.TypeOf((*MockStore)(nil).GetEntities), ctx)
+}
+
+// GetEpisodes mocks base method.
+func (m *MockStore) GetEpisodes(ctx context.Context, limit, offset int) ([]memory.Episode, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpisodes", ctx, limit, offset)
+	ret0, _ := ret[0].([]memory.Episode)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEpisodes indicates an expected call of GetEpisodes.
+func (mr *MockStoreMockRecorder) GetEpisodes(ctx, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpisodes", reflect.TypeOf((*MockStore)(nil).GetEpisodes), ctx, limit, offset)
+}
+
+// GetEpisodesByTimeRange mocks base method.
+func (m *MockStore) GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([]memory.Episode, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpisodesByTimeRange", ctx, start, end)
+	ret0, _ := ret[0].([]memory.Episode)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEpisodesByTimeRange indicates an expected call of GetEpisodesByTimeRange.
+func (mr *MockStoreMockRecorder) GetEpisodesByTimeRange(ctx, start, end any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpisodesByTimeRange", reflect.TypeOf((*MockStore)(nil).GetEpisodesByTimeRange), ctx, start, end)
+}
+
+// GetFacts mocks base method.
+func (m *MockStore) GetFacts(ctx context.Context, limit, offset int) ([]memory.Fact, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFacts", ctx, limit, offset)
+	ret0, _ := ret[0].([]memory.Fact)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFacts indicates an expected call of GetFacts.
+func (mr *MockStoreMockRecorder) GetFacts(ctx, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFacts", reflect.TypeOf((*MockStore)(nil).GetFacts), ctx, limit, offset)
+}
+
 // GetMessage mocks base method.
 func (m *MockStore) GetMessage(ctx context.Context, id string) (*memory.Message, error) {
 	m.ctrl.T.Helper()
@@ -87,6 +147,21 @@ func (mr *MockStoreMockRecorder) GetMessagesBySession(ctx, sessionID any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMessagesBySession", reflect.TypeOf((*MockStore)(nil).GetMessagesBySession), ctx, sessionID)
 }
 
+// GetRelationships mocks base method.
+func (m *MockStore) GetRelationships(ctx context.Context) ([]memory.Relationship, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRelationships", ctx)
+	ret0, _ := ret[0].([]memory.Relationship)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRelationships indicates an expected call of GetRelationships.
+func (mr *MockStoreMockRecorder) GetRelationships(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRelationships", reflect.TypeOf((*MockStore)(nil).GetRelationships), ctx)
+}
+
 // GetScratchpad mocks base method.
 func (m *MockStore) GetScratchpad(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
@@ -114,6 +189,76 @@ func (m *MockStore) LogActivity(ctx context.Context, entry *memory.ActivityEntry
 func (mr *MockStoreMockRecorder) LogActivity(ctx, entry any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogActivity", reflect.TypeOf((*MockStore)(nil).LogActivity), ctx, entry)
+}
+
+// SaveEntity mocks base method.
+func (m *MockStore) SaveEntity(ctx context.Context, entity memory.Entity) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveEntity", ctx, entity)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveEntity indicates an expected call of SaveEntity.
+func (mr *MockStoreMockRecorder) SaveEntity(ctx, entity any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveEntity", reflect.TypeOf((*MockStore)(nil).SaveEntity), ctx, entity)
+}
+
+// SaveEpisode mocks base method.
+func (m *MockStore) SaveEpisode(ctx context.Context, ep *memory.Episode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveEpisode", ctx, ep)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveEpisode indicates an expected call of SaveEpisode.
+func (mr *MockStoreMockRecorder) SaveEpisode(ctx, ep any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveEpisode", reflect.TypeOf((*MockStore)(nil).SaveEpisode), ctx, ep)
+}
+
+// SaveEpisodeVector mocks base method.
+func (m *MockStore) SaveEpisodeVector(ctx context.Context, episodeID string, embedding []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveEpisodeVector", ctx, episodeID, embedding)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveEpisodeVector indicates an expected call of SaveEpisodeVector.
+func (mr *MockStoreMockRecorder) SaveEpisodeVector(ctx, episodeID, embedding any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveEpisodeVector", reflect.TypeOf((*MockStore)(nil).SaveEpisodeVector), ctx, episodeID, embedding)
+}
+
+// SaveFact mocks base method.
+func (m *MockStore) SaveFact(ctx context.Context, fact *memory.Fact) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveFact", ctx, fact)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveFact indicates an expected call of SaveFact.
+func (mr *MockStoreMockRecorder) SaveFact(ctx, fact any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFact", reflect.TypeOf((*MockStore)(nil).SaveFact), ctx, fact)
+}
+
+// SaveFactVector mocks base method.
+func (m *MockStore) SaveFactVector(ctx context.Context, factID string, embedding []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveFactVector", ctx, factID, embedding)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveFactVector indicates an expected call of SaveFactVector.
+func (mr *MockStoreMockRecorder) SaveFactVector(ctx, factID, embedding any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFactVector", reflect.TypeOf((*MockStore)(nil).SaveFactVector), ctx, factID, embedding)
 }
 
 // SaveMessage mocks base method.
@@ -144,6 +289,20 @@ func (mr *MockStoreMockRecorder) SaveMessageVector(ctx, messageID, embedding any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveMessageVector", reflect.TypeOf((*MockStore)(nil).SaveMessageVector), ctx, messageID, embedding)
 }
 
+// SaveRelationship mocks base method.
+func (m *MockStore) SaveRelationship(ctx context.Context, rel *memory.Relationship) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveRelationship", ctx, rel)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveRelationship indicates an expected call of SaveRelationship.
+func (mr *MockStoreMockRecorder) SaveRelationship(ctx, rel any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveRelationship", reflect.TypeOf((*MockStore)(nil).SaveRelationship), ctx, rel)
+}
+
 // SearchEpisodes mocks base method.
 func (m *MockStore) SearchEpisodes(ctx context.Context, embedding []byte, limit int) ([]memory.Episode, error) {
 	m.ctrl.T.Helper()
@@ -172,6 +331,20 @@ func (m *MockStore) SearchFacts(ctx context.Context, embedding []byte, limit int
 func (mr *MockStoreMockRecorder) SearchFacts(ctx, embedding, limit any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchFacts", reflect.TypeOf((*MockStore)(nil).SearchFacts), ctx, embedding, limit)
+}
+
+// UpdateFact mocks base method.
+func (m *MockStore) UpdateFact(ctx context.Context, fact *memory.Fact) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFact", ctx, fact)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFact indicates an expected call of UpdateFact.
+func (mr *MockStoreMockRecorder) UpdateFact(ctx, fact any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFact", reflect.TypeOf((*MockStore)(nil).UpdateFact), ctx, fact)
 }
 
 // UpdateScratchpad mocks base method.
