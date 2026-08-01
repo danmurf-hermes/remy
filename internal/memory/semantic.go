@@ -59,8 +59,8 @@ func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error)
 	qb := sb.Select(factColumns...).
 		From("facts").
 		OrderBy("updated_at DESC").
-		Limit(uint64(limit)).   //nolint:gosec // limit from user input
-		Offset(uint64(offset)). //nolint:gosec // offset from user input
+		Limit(uint64(limit)).  //nolint:gosec // limit from user input
+		Offset(uint64(offset)) //nolint:gosec // offset from user input
 
 	var facts []Fact
 	if err := s.scanRows(ctx, qb, func(row rowScanner) error {

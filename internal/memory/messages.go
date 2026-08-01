@@ -59,8 +59,8 @@ func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, 
 	qb := sb.Select(messageColumns...).
 		From("messages").
 		OrderBy("timestamp DESC").
-		Limit(uint64(limit)).   //nolint:gosec // limit from user input
-		Offset(uint64(offset)). //nolint:gosec // offset from user input
+		Limit(uint64(limit)).  //nolint:gosec // limit from user input
+		Offset(uint64(offset)) //nolint:gosec // offset from user input
 
 	var messages []Message
 	if err := s.scanRows(ctx, qb, func(row rowScanner) error {

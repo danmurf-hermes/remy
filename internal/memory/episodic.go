@@ -60,7 +60,7 @@ func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, 
 		From("episodes").
 		OrderBy("end_time DESC").
 		Limit(uint64(limit)).   //nolint:gosec // limit from user input, safe for test usage
-		Offset(uint64(offset)). //nolint:gosec // offset from user input, safe for test usage
+		Offset(uint64(offset))  //nolint:gosec // offset from user input, safe for test usage
 
 	var episodes []Episode
 	if err := s.scanRows(ctx, qb, func(row rowScanner) error {
