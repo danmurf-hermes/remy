@@ -8,7 +8,7 @@ import (
 	"github.com/danmurf/remy/internal/config"
 )
 
-//nolint:gocyclo
+//nolint:gocyclo // table-driven test with many cases
 func TestConfig(t *testing.T) {
 	tests := []struct {
 		name    string
