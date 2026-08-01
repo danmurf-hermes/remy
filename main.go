@@ -59,9 +59,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}
-	defer func() {
-		_ = store.Close()
-	}()
 
 	embedder := memory.NewEmbedder(providerCfg.Endpoint, providerCfg.EmbeddingModel)
 
@@ -71,15 +68,14 @@ func main() {
 
 	application, err := app.NewApp(cfg, store, llmProvider, embedder, personaLoader, sched)
 	if err != nil {
+		store.Close()
 		log.Fatalf("Error creating app: %v", err)
 	}
 
-	// Start the scheduler
 	sched.Start(context.Background())
 
 	fmt.Printf("Remy %s starting...\n", version)
 
-	// Create Wails app with options
 	err = wails.Run(&options.App{
 		Title:  "Remy",
 		Width:  1024,
@@ -93,6 +89,8 @@ func main() {
 			application,
 		},
 	})
+
+	store.Close()
 
 	if err != nil {
 		log.Fatalf("Error running application: %v", err)
