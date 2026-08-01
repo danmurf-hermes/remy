@@ -187,19 +187,19 @@ func (a *Agent) ListPersonas(ctx context.Context) ([]persona.Summary, error) {
 // contextBundle holds all the data prepared by prepareContext for use
 // by HandleMessage and HandleMessageStream.
 type contextBundle struct {
-	userMessage     *memory.Message
-	embeddingBytes  []byte
-	episodes        []memory.Episode
-	facts           []memory.Fact
-	scratchpad      string
-	recentMessages  []memory.Message
-	personaSwitch   string
-	upcomingTasks   string
-	prompt          PromptResult
-	userID          string
-	sessionID       string
-	interfaceName   string
-	now             int64
+	userMessage    *memory.Message
+	embeddingBytes []byte
+	episodes       []memory.Episode
+	facts          []memory.Fact
+	scratchpad     string
+	recentMessages []memory.Message
+	personaSwitch  string
+	upcomingTasks  string
+	prompt         PromptResult
+	userID         string
+	sessionID      string
+	interfaceName  string
+	now            int64
 }
 
 // prepareContext is the shared setup for HandleMessage and HandleMessageStream.

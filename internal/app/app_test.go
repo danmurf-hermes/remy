@@ -15,12 +15,12 @@ import (
 
 // fakeAgent implements app.AgentService for testing.
 type fakeAgent struct {
-	handleMessageFn        func(ctx context.Context, userMsg string) (*memory.Message, error)
-	handleMessageStreamFn  func(ctx context.Context, userMsg string) (<-chan agent.StreamChunk, error)
-	listPersonasFn         func(ctx context.Context) ([]persona.Summary, error)
-	setActivePersonaFn     func(ctx context.Context, name string) error
-	activePersonaFn        func() *persona.Persona
-	loadActivePersonaFn    func(ctx context.Context) error
+	handleMessageFn         func(ctx context.Context, userMsg string) (*memory.Message, error)
+	handleMessageStreamFn   func(ctx context.Context, userMsg string) (<-chan agent.StreamChunk, error)
+	listPersonasFn          func(ctx context.Context) ([]persona.Summary, error)
+	setActivePersonaFn      func(ctx context.Context, name string) error
+	activePersonaFn         func() *persona.Persona
+	loadActivePersonaFn     func(ctx context.Context) error
 	scheduleConsolidationFn func(ctx context.Context) func()
 }
 
@@ -610,7 +610,7 @@ func TestMessageToDTO_Nil(t *testing.T) {
 
 	agent := &fakeAgent{
 		handleMessageFn: func(ctx context.Context, userMsg string) (*memory.Message, error) {
-			return nil, nil
+			return nil, nil //nolint:nilnil // intentional: test nil-handling path
 		},
 	}
 

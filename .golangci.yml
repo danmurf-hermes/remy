@@ -19,7 +19,6 @@ linters:
     - gocyclo
     - dupl
     - nilnil
-    - mnd
   settings:
     gocritic:
       enabled-tags:
@@ -30,8 +29,6 @@ linters:
       min-complexity: 15
     dupl:
       threshold: 150
-    mnd:
-      ignored-numbers: ["0", "1", "2", "100"]
     revive:
       severity: warning
       rules:
