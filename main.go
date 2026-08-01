@@ -47,7 +47,7 @@ func main() {
 	}
 
 	dbPath := cfg.Memory.DBPath
-	if len(dbPath) > 0 && dbPath[0] == '~' {
+	if dbPath != "" && dbPath[0] == '~' {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			log.Fatalf("Error getting home directory: %v", err)
@@ -59,18 +59,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		_ = store.Close()
+	}()
 
 	embedder := memory.NewEmbedder(providerCfg.Endpoint, providerCfg.EmbeddingModel)
-
-	personaDir := cfg.Persona.Directory
-	if len(personaDir) > 0 && personaDir[0] == '~' {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatalf("Error getting home directory: %v", err)
-		}
-		personaDir = filepath.Join(home, personaDir[1:])
-	}
 
 	personaLoader := app.NewPersonaLoader()
 

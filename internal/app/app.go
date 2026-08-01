@@ -20,10 +20,10 @@ import (
 // App is the main Wails application struct. Its exported methods become
 // bindings callable from the Svelte frontend.
 type App struct {
-	ctx       context.Context
-	agent     *agent.Agent
-	store     *memory.Store
-	cfg       *config.Config
+	ctx               context.Context
+	agent             *agent.Agent
+	store             *memory.Store
+	cfg               *config.Config
 	stopConsolidation func()
 	stopScheduler     func()
 }

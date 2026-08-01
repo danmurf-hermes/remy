@@ -19,6 +19,6 @@ func (l *PersonaLoader) LoadPersona(path string) (*persona.Persona, error) {
 }
 
 // ListPersonas lists all personas in the given directory.
-func (l *PersonaLoader) ListPersonas(dir string, activeName string) ([]persona.Summary, error) {
+func (l *PersonaLoader) ListPersonas(dir, activeName string) ([]persona.Summary, error) {
 	return persona.ListPersonas(dir, activeName)
 }
