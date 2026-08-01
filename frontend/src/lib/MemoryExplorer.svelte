@@ -14,21 +14,17 @@
   ]
 
   let searchQuery = ''
-  let isSearching = false
 
   async function handleSearch() {
     if (!searchQuery.trim()) {
       searchResults.set(null)
       return
     }
-    isSearching = true
     try {
       const results = await searchMemory(searchQuery.trim(), $searchType)
       searchResults.set(results)
     } catch (err) {
       console.error('Search failed:', err)
-    } finally {
-      isSearching = false
     }
   }
 

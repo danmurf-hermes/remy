@@ -39,7 +39,7 @@
   }
 
   function formatDate(ts) {
-    if (!ts) return ''
+    if (!ts) { return '' }
     const d = new Date(ts)
     return d.toLocaleDateString('en-US', {
       month: 'short',
@@ -50,20 +50,20 @@
   }
 
   function getImportanceColor(imp) {
-    if (imp >= 0.7) return '#34c759'
-    if (imp >= 0.4) return '#ff9500'
+    if (imp >= 0.7) { return '#34c759' }
+    if (imp >= 0.4) { return '#ff9500' }
     return '#86868b'
   }
 
   function formatDuration(start, end) {
-    if (!start || !end) return 'N/A'
+    if (!start || !end) { return 'N/A' }
     const diff = end - start
     const mins = Math.round(diff / 60000)
-    if (mins < 1) return 'Less than a minute'
-    if (mins < 60) return `${mins} min`
+    if (mins < 1) { return 'Less than a minute' }
+    if (mins < 60) { return `${mins} min` }
     const hours = Math.floor(mins / 60)
     const remaining = mins % 60
-    if (remaining === 0) return `${hours}h`
+    if (remaining === 0) { return `${hours}h` }
     return `${hours}h ${remaining}m`
   }
 </script>
@@ -86,7 +86,7 @@
             <div class="timeline-line"></div>
           {/if}
           <div class="timeline-content" class:expanded={expandedId === ep.id}>
-            <div class="timeline-header" on:click={() => toggleExpand(ep.id)}>
+            <div class="timeline-header" role="button" tabindex="0" on:click={() => toggleExpand(ep.id)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(ep.id); } }}>
               <div class="timeline-date">{formatDate(ep.end_time || ep.start_time)}</div>
               <div class="timeline-importance">
                 <span class="importance-dot" style="background: {getImportanceColor(ep.importance)};"></span>

@@ -42,22 +42,17 @@
   }
 
   function getRelatedEntities(entityId) {
-    if (!$relationships) return []
+    if (!$relationships) { return [] }
     return $relationships.filter(
       (r) => r.source_entity === entityId || r.target_entity === entityId
     )
-  }
-
-  function getEntityByName(name) {
-    if (!$entities) return null
-    return $entities.find((e) => e.name === name) || null
   }
 
   // Simple layout: arrange entities in a circle
   $: layout = computeLayout($entities)
 
   function computeLayout(entityList) {
-    if (!entityList || entityList.length === 0) return []
+    if (!entityList || entityList.length === 0) { return [] }
     const cx = 250
     const cy = 200
     const radius = 140
@@ -74,7 +69,7 @@
   $: edgePaths = computeEdgePaths($relationships, layout)
 
   function computeEdgePaths(relList, nodeList) {
-    if (!relList || !nodeList) return []
+    if (!relList || !nodeList) { return [] }
     const nodeMap = {}
     for (const n of nodeList) {
       nodeMap[n.name] = n
@@ -83,7 +78,7 @@
       .map((r) => {
         const src = nodeMap[r.source_entity]
         const tgt = nodeMap[r.target_entity]
-        if (!src || !tgt) return null
+        if (!src || !tgt) { return null }
         return { ...r, x1: src.x, y1: src.y, x2: tgt.x, y2: tgt.y }
       })
       .filter(Boolean)
@@ -128,7 +123,10 @@
           <g
             class="entity-node"
             class:selected={selectedEntity && selectedEntity.id === node.id}
+            role="button"
+            tabindex="0"
             on:click={() => selectEntity(node)}
+            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectEntity(node); } }}
           >
             <rect
               x={node.x - 50}

@@ -42,8 +42,8 @@
   }
 
   function getConfidenceColor(confidence) {
-    if (confidence >= 0.8) return '#34c759'
-    if (confidence >= 0.5) return '#ff9500'
+    if (confidence >= 0.8) { return '#34c759' }
+    if (confidence >= 0.5) { return '#ff9500' }
     return '#ff3b30'
   }
 
