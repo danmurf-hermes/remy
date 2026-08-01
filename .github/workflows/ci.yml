@@ -75,7 +75,7 @@ jobs:
           go-version: '1.26'
 
       - name: Set up Ollama
-        uses: nomic-ai/ollama@v1
+        uses: ai-action/setup-ollama@v2
         with:
           model: nomic-embed-text
 
@@ -111,6 +111,10 @@ jobs:
 
       - name: Frontend dependencies
         run: npm ci
+        working-directory: frontend
+
+      - name: Frontend build
+        run: npm run build
         working-directory: frontend
 
       - name: Build binary
