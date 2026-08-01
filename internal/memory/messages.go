@@ -64,7 +64,7 @@ func (s *Store) GetMessages(ctx context.Context, limit, offset int) ([]Message, 
 	if err != nil {
 		return nil, fmt.Errorf("querying messages: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []Message
 	for rows.Next() {
@@ -94,7 +94,7 @@ func (s *Store) GetMessagesBySession(ctx context.Context, sessionID string) ([]M
 	if err != nil {
 		return nil, fmt.Errorf("querying messages by session: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []Message
 	for rows.Next() {

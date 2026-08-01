@@ -8,18 +8,18 @@ import (
 )
 
 type ProviderConfig struct {
-	Endpoint       string            `json:"endpoint"`
-	APIKey         string            `json:"api_key"`
-	ChatModel      string            `json:"chat_model"`
-	EmbeddingModel string            `json:"embedding_model"`
-	Parameters     map[string]any    `json:"parameters,omitempty"`
+	Endpoint       string         `json:"endpoint"`
+	APIKey         string         `json:"api_key"`
+	ChatModel      string         `json:"chat_model"`
+	EmbeddingModel string         `json:"embedding_model"`
+	Parameters     map[string]any `json:"parameters,omitempty"`
 }
 
 type MemoryConfig struct {
-	DBPath                   string `json:"db_path"`
-	WorkingMemoryTurns       int    `json:"working_memory_turns"`
-	QuickConsolidationDelayMs int   `json:"quick_consolidation_delay_ms"`
-	DeepConsolidationDelayMs int   `json:"deep_consolidation_delay_ms"`
+	DBPath                    string `json:"db_path"`
+	WorkingMemoryTurns        int    `json:"working_memory_turns"`
+	QuickConsolidationDelayMs int    `json:"quick_consolidation_delay_ms"`
+	DeepConsolidationDelayMs  int    `json:"deep_consolidation_delay_ms"`
 }
 
 type PersonaConfig struct {
@@ -45,10 +45,12 @@ type Config struct {
 	Interfaces      InterfacesConfig          `json:"interfaces"`
 }
 
+const defaultProviderName = "ollama"
+
 func DefaultConfig() *Config {
 	return &Config{
 		Providers: map[string]ProviderConfig{
-			"ollama": {
+			defaultProviderName: {
 				Endpoint:       "http://localhost:11434/v1",
 				APIKey:         "",
 				ChatModel:      "llama3.1:8b",
@@ -59,10 +61,10 @@ func DefaultConfig() *Config {
 				},
 			},
 		},
-		DefaultProvider: "ollama",
+		DefaultProvider: defaultProviderName,
 		Memory: MemoryConfig{
-			DBPath:                   "~/.remy/memory.db",
-			WorkingMemoryTurns:       20,
+			DBPath:                    "~/.remy/memory.db",
+			WorkingMemoryTurns:        20,
 			QuickConsolidationDelayMs: 300000,
 			DeepConsolidationDelayMs:  1800000,
 		},
@@ -119,11 +121,11 @@ func SaveConfig(path string, cfg *Config) error {
 	}
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
 	}
 	return nil

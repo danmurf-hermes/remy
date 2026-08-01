@@ -1,0 +1,95 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - goconst
+    - gocritic
+    - gosec
+    - misspell
+    - prealloc
+    - revive
+
+formatters:
+  enable:
+    - gofmt
+
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+  revive:
+    severity: warning
+    rules:
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: errorf
+      - name: error-strings
+      - name: error-naming
+      - name: range
+      - name: receiver-naming
+      - name: indent-error-flow
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+        severity: error
+      - name: get-return
+      - name: time-naming
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: blank-imports
+      - name: redefines-builtin-id
+      - name: confusing-naming
+      - name: confusing-results
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  misspell:
+    locale: US
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: true
+
+issues:
+  exclude-dirs:
+    - frontend/node_modules
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - prealloc
+        - goconst
+        - revive
+    - linters:
+        - gosec
+      text: "G115"
+    - linters:
+        - gosec
+      text: "G304"
+    - linters:
+        - gosec
+      text: "G101"
+    - linters:
+        - revive
+      text: "exported"
+    - linters:
+        - revive
+      text: "package-comments"
+    - linters:
+        - revive
+      text: "blank-imports"

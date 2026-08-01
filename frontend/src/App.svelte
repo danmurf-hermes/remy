@@ -1,5 +1,5 @@
 <script>
-  let message = 'Hello Remy'
+  const message = 'Hello Remy'
 </script>
 
 <main>

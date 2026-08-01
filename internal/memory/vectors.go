@@ -75,7 +75,7 @@ func (e *Embedder) doRequest(ctx context.Context, req any, resp any) error {
 	if err != nil {
 		return fmt.Errorf("sending request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	if httpResp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %d", httpResp.StatusCode)

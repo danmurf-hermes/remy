@@ -16,21 +16,46 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.26'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
       - name: Go vet
         run: go vet ./...
+
+      - name: gofmt check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: golangci-lint
+        run: golangci-lint run ./...
 
       - name: Go test
         run: go test ./internal/... -cover
 
       - name: Frontend dependencies
         run: npm ci
+        working-directory: frontend
+
+      - name: Frontend lint (ESLint)
+        run: npx eslint --ext .js,.svelte src/
+        working-directory: frontend
+
+      - name: Frontend format check (Prettier)
+        run: npx prettier --check src/
         working-directory: frontend
 
       - name: Frontend test

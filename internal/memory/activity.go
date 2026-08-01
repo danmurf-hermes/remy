@@ -49,7 +49,7 @@ func (s *Store) GetActivityLog(ctx context.Context, filter string, limit, offset
 	if err != nil {
 		return nil, fmt.Errorf("querying activity log: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []ActivityEntry
 	for rows.Next() {

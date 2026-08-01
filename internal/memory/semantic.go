@@ -64,7 +64,7 @@ func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error)
 	if err != nil {
 		return nil, fmt.Errorf("querying facts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -94,7 +94,7 @@ func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact
 	if err != nil {
 		return nil, fmt.Errorf("querying facts by category: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -164,7 +164,7 @@ func (s *Store) SearchFacts(ctx context.Context, embedding []byte, limit int) ([
 	if err != nil {
 		return nil, fmt.Errorf("searching facts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -232,7 +232,7 @@ func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying entities: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entities []Entity
 	for rows.Next() {
@@ -279,7 +279,7 @@ func (s *Store) GetRelationships(ctx context.Context) ([]Relationship, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying relationships: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var relationships []Relationship
 	for rows.Next() {

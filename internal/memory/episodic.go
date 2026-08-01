@@ -64,7 +64,7 @@ func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, 
 	if err != nil {
 		return nil, fmt.Errorf("querying episodes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {
@@ -95,7 +95,7 @@ func (s *Store) GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([
 	if err != nil {
 		return nil, fmt.Errorf("querying episodes by time range: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {
@@ -124,7 +124,7 @@ func (s *Store) SearchEpisodes(ctx context.Context, embedding []byte, limit int)
 	if err != nil {
 		return nil, fmt.Errorf("searching episodes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {

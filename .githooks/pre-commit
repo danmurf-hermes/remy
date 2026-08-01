@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+
+echo "Running pre-commit checks..."
+
+echo "→ gofmt"
+gofmt -s -w .
+
+echo "→ Go vet"
+go vet ./...
+
+echo "→ golangci-lint"
+golangci-lint run ./...
+
+echo "→ Go tests"
+go test ./internal/... -cover
+
+echo "→ Frontend format"
+cd frontend
+npx prettier --write src/
+
+echo "→ Frontend lint"
+npx eslint --ext .js,.svelte src/
+
+echo "→ Frontend tests"
+npm test
+cd ..
+
+echo "✓ All pre-commit checks passed"
