@@ -51,25 +51,27 @@ mv remy /usr/local/bin/
 
 ### 2.3 Provider Model
 
-Remy uses a provider-based architecture. Each provider encapsulates its own endpoint, auth, and model settings. This keeps the config clean and makes it easy to add new providers later.
+Remy supports multiple LLM providers configured in `config.json`. Each provider has its own endpoint, auth, and model settings. The `default_provider` field specifies which one to use when a persona doesn't override it.
 
 ```json
 {
-  "provider": {
-    "name": "ollama",           // 'ollama' | 'openai' | 'anthropic'
-    "endpoint": "http://localhost:11434/v1",
-    "api_key": "",
-    "chat_model": "llama3.1:8b",
-    "embedding_model": "nomic-embed-text",
-    "parameters": {
-      "temperature": 0.7,
-      "max_tokens": 4096
+  "providers": {
+    "ollama": {
+      "endpoint": "http://localhost:11434/v1",
+      "api_key": "",
+      "chat_model": "llama3.1:8b",
+      "embedding_model": "nomic-embed-text",
+      "parameters": {
+        "temperature": 0.7,
+        "max_tokens": 4096
+      }
     }
-  }
+  },
+  "default_provider": "ollama"
 }
 ```
 
-**Initially only Ollama is supported.** The provider abstraction is designed so that adding OpenAI or Anthropic later is just a new provider module — the rest of Remy doesn't change.
+**Initially only Ollama is supported.** The provider abstraction is designed so that adding OpenAI or Anthropic later is just adding a new entry to `config.json` and a new provider module — the rest of Remy doesn't change.
 
 **Recommended local models (Ollama):**
 - **Chat:** `llama3.1:8b` — good balance of quality and speed on consumer hardware. For weaker hardware (Raspberry Pi, 8GB RAM), `llama3.2:3b` or `qwen2.5:7b` (4-bit quantized).
@@ -95,9 +97,8 @@ The init command walks the user through setup:
 ### 2.4 Starting Remy
 
 ```
-$ remy                    # Starts with CLI interface (interactive)
-$ remy --daemon           # Starts in background, no CLI
-$ remy --interface cli    # Explicit interface selection
+$ remy                    # Opens the desktop GUI window
+$ remy --daemon           # Starts in background (Telegram only, no GUI)
 ```
 
 On first start without `init`, Remy auto-runs the init checks and guides the user through any missing dependencies.
@@ -107,7 +108,7 @@ On first start without `init`, Remy auto-runs the init checks and guides the use
 To connect Telegram, the user:
 1. Creates a bot via [@BotFather](https://t.me/BotFather) on Telegram
 2. Sets the token in `~/.remy/config.json` or via `REMY_TELEGRAM_BOT_TOKEN` env var
-3. Starts Remy with `remy --interface telegram` or enables it in config
+3. Starts Remy with `remy` (GUI) or `remy --daemon` (background, Telegram only)
 
 ### 2.6 File Layout
 
@@ -128,13 +129,14 @@ To connect Telegram, the user:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Interfaces Layer                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
-│  │ Telegram  │  │   CLI    │  │  Future  │                   │
-│  └─────┬────┘  └────┬─────┘  └────┬─────┘                   │
-│        │            │             │                          │
-└────────┼────────────┼─────────────┼──────────────────────────┘
-         │            │             │
-         ▼            ▼             ▼
+│  ┌──────────────────┐  ┌──────────┐                         │
+│  │  Desktop GUI      │  │ Telegram  │                         │
+│  │  (Wails + Svelte) │  │  (optional)│                        │
+│  └────────┬─────────┘  └────┬─────┘                         │
+│           │                  │                                │
+└───────────┼──────────────────┼───────────────────────────────┘
+            │                  │
+            ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Message Bus (Go channels)                 │
 │  All interfaces produce/consume the same message format      │
@@ -229,7 +231,7 @@ CREATE TABLE messages (
     role        TEXT NOT NULL,  -- 'user' | 'assistant' | 'system'
     content     TEXT NOT NULL,
     timestamp   INTEGER NOT NULL,
-    interface   TEXT NOT NULL,  -- 'telegram' | 'cli'
+    interface   TEXT NOT NULL,  -- 'gui' | 'telegram'
     session_id  TEXT           -- logical grouping
 );
 
@@ -307,6 +309,19 @@ CREATE VIRTUAL TABLE fact_vectors USING vec0(
     id TEXT PRIMARY KEY,
     embedding FLOAT[768]
 );
+
+-- Activity log (audit trail of agent decisions)
+CREATE TABLE activity_log (
+    id          TEXT PRIMARY KEY,
+    timestamp   INTEGER NOT NULL,
+    type        TEXT NOT NULL,  -- 'message_sent' | 'message_received' | 'memory_retrieval' | 'function_call' | 'llm_request' | 'llm_response' | 'consolidation' | 'error'
+    details     TEXT NOT NULL,  -- JSON with type-specific data
+    message_id  TEXT,           -- reference to the related message, if any
+    session_id  TEXT            -- logical grouping for a single turn
+);
+-- e.g. { "type": "memory_retrieval", "details": { "query": "...", "results": 3, "sources": ["episode:abc", "fact:def"] } }
+-- e.g. { "type": "llm_request", "details": { "prompt_tokens": 2048, "model": "llama3.1:8b", "temperature": 0.7 } }
+-- e.g. { "type": "function_call", "details": { "function": "create_reminder", "args": { "when": "tomorrow 3pm", "what": "call dentist" }, "result": "ok" } }
 ```
 
 **How semantic memory is built:**
@@ -381,7 +396,27 @@ Timeline:
 - The agent always has relevant context without the user asking
 - Consolidation happens opportunistically, not on a rigid timer
 
-### 4.2 Context Window Management
+### 4.2 Multi-Interface Conversations
+
+The user can switch between interfaces freely — chat in the GUI, then send a message from Telegram, then back to the GUI. From the user's perspective, it's one continuous conversation with the same agent.
+
+**How it works:**
+
+1. **Shared memory, separate working contexts** — All messages from all interfaces go into the same database (same `messages`, `episodes`, `facts` tables). The `interface` column on each message records where it came from. But each interface maintains its own working memory (last ~20 turns) because the conversation flow is different on each device.
+
+2. **Cross-interface awareness** — When the agent responds on any interface, it automatically retrieves relevant context from *all* past messages regardless of interface. So if you ask "what was that thing I asked about earlier?" on Telegram, the agent can find it even if you asked it in the GUI.
+
+3. **No interface silos** — The agent doesn't treat interfaces as separate conversations. It's one person talking to one agent through different windows. The automatic retrieval (Tier 1) ensures relevant context from any interface is always available.
+
+4. **Edge case — simultaneous conversations** — If the user sends a message on Telegram while the agent is mid-response on the GUI, both messages are processed in order. The agent responds to each in turn, with the second response aware of the first (since it's in the message history).
+
+**Why this model:**
+- Feels natural — like messaging someone who has both your phone number and your chat app
+- No "which interface did I say that on?" confusion
+- The agent's memory is unified, only the current working context is per-interface
+- Consolidation (episodic summaries, fact extraction) runs on the unified message stream
+
+### 4.3 Context Window Management
 
 When the conversation grows beyond the model's context window:
 
@@ -466,7 +501,8 @@ The agent builds a semantic model of the user over time:
 │   ├── fact_vectors       # Vector embeddings for facts
 │   ├── entities           # People, places, concepts
 │   ├── relationships      # Links between entities
-│   └── scratchpad         # Agent's persistent working memory
+│   ├── scratchpad         # Agent's persistent working memory
+│   └── activity_log       # Audit trail of agent decisions
 ├── config.json            # Agent configuration
 └── logs/                  # Application logs
 ```
@@ -557,8 +593,28 @@ When a task is due:
 3. The message is routed through the normal agent loop:
    - Context is retrieved (relevant memories, scratchpad)
    - The agent processes the trigger and generates a response
-   - The response is sent to the user via the appropriate interface
+   - The response is sent to the user via the **active interface(s)**
 4. For recurring tasks, the next occurrence is calculated and stored
+
+**Multi-interface delivery:**
+
+When a task fires, the agent sends the message to all active interfaces. This means:
+
+- If the GUI is open and Telegram is connected, the reminder appears in both places simultaneously
+- If the GUI is closed (minimized to tray), the reminder arrives as a desktop notification and also appears in Telegram
+- If only Telegram is connected (daemon mode), the reminder arrives as a Telegram message
+- The user can dismiss or acknowledge the reminder on any interface — the acknowledgment syncs to the database so other interfaces know it's been handled
+
+**Why deliver to all interfaces:**
+- The user shouldn't have to guess which device will receive the reminder
+- If the user is away from their Mac but has their phone, the Telegram message catches them
+- If the user is at their Mac, the desktop notification is immediate and doesn't require picking up their phone
+- Duplicate delivery is acceptable because the user naturally ignores the second copy once they've seen it on one device
+
+**Acknowledgment sync:**
+- When the user responds to a reminder on any interface (e.g., "thanks, done" in Telegram), the agent marks the task as acknowledged
+- Subsequent deliveries to other interfaces include a note: "✓ Acknowledged on Telegram" so the user knows it's been handled
+- The desktop notification is dismissed automatically when acknowledged on another interface (via polling or push)
 
 ### 7.5 Agent Awareness of Scheduled Tasks
 
@@ -573,14 +629,23 @@ The agent should be aware of its own schedule. The system prompt includes a summ
 
 A persona defines *how* the agent behaves — its identity, tone, communication style, and constraints. Personas are separate from memory (which defines *what* the agent knows). The user can create multiple personas and switch between them at any time.
 
+Each persona can optionally specify a **provider and model override** — a different LLM provider and/or model that works best for that personality. This lets you pair personas with the models that suit them: a creative writing persona might use a large expressive model from Ollama, while a quick-task persona uses a fast lightweight one. Personas can even use different providers (e.g., default uses Ollama, but a "polished" persona uses Anthropic).
+
 ### 8.1 Persona Definition
 
-Each persona is a Markdown file with a name and a description of how the agent should behave. The file is loaded into the system prompt, so the LLM uses it to shape every response.
+Each persona is a Markdown file with frontmatter for model configuration and a body describing how the agent should behave. The file is loaded into the system prompt, so the LLM uses it to shape every response.
 
 **File location:** `~/.remy/personas/<name>.md`
 
 **Example — `~/.remy/personas/default.md`:**
 ```markdown
+---
+provider: ollama
+model: llama3.1:8b
+temperature: 0.7
+max_tokens: 4096
+---
+
 # Remy
 
 You are a personal assistant named Remy. You are helpful, concise, and proactive.
@@ -605,52 +670,91 @@ You are a personal assistant named Remy. You are helpful, concise, and proactive
 - Use markdown formatting for lists and code blocks
 ```
 
-**Example — `~/.remy/personas/professional.md`:**
+**Example — `~/.remy/personas/creative.md`:**
 ```markdown
-# Remy (Professional)
+---
+provider: ollama
+model: llama3.1:70b
+temperature: 0.9
+max_tokens: 8192
+---
 
-You are a professional executive assistant named Remy. You are precise, efficient, and formal.
+# Remy (Creative)
+
+You are a creative writing partner named Remy. You are expressive, imaginative, and enthusiastic.
 
 ## Tone
-- Formal and polished
-- Use proper grammar and complete sentences
-- No slang, no humor
-- Be concise and to the point
+- Warm and encouraging
+- Use vivid language and metaphors
+- Be playful and experimental
+- Ask open-ended questions to spark ideas
 
 ## Behavior
-- Prioritize task completion over conversation
-- Confirm instructions before executing
-- Provide structured, organized responses
-- Flag potential issues proactively
+- Offer multiple creative directions
+- Build on the user's ideas
+- Suggest alternatives and variations
+- Celebrate experimentation over perfection
 
 ## Constraints
 - Never share personal information
-- Always confirm before taking destructive actions
+- Keep suggestions constructive, never critical
+```
+
+**Example — `~/.remy/personas/quick.md`:**
+```markdown
+---
+provider: ollama
+model: llama3.2:3b
+temperature: 0.3
+max_tokens: 1024
+---
+
+# Remy (Quick)
+
+You are a fast, efficient assistant. You prioritize speed and brevity.
+
+## Tone
+- Direct and concise
+- No pleasantries, no fluff
+- Use bullet points where possible
+
+## Behavior
+- Answer immediately without preamble
+- If unsure, say so in one sentence
+- Never ask follow-up questions unless critical
 ```
 
 ### 8.2 How Personas Work
 
 1. Each persona is a standalone Markdown file in `~/.remy/personas/`
-2. The active persona is loaded into the system prompt at the start of every turn
-3. The user can edit persona files at any time — changes take effect on the next message
-4. The persona is part of the system prompt, so the LLM uses it to shape every response
-5. Personas are independent of memory — switching personas doesn't affect what the agent remembers
+2. The file has YAML frontmatter (between `---` lines) specifying model overrides, followed by the persona body
+3. The active persona is loaded into the system prompt at the start of every turn
+4. If the persona specifies a model override, the agent switches to that model for the duration of the conversation. If no override is specified, the default provider model is used.
+5. The user can edit persona files at any time — changes take effect on the next message
+6. Personas are independent of memory — switching personas doesn't affect what the agent remembers
+
+**Model override resolution:**
+- If the persona has `provider:` in frontmatter, switch to that provider (using its endpoint and API key from config)
+- If the persona has `model:` in frontmatter, use that model from the selected provider
+- If neither is specified, use the default provider and model from config
+- Temperature and max_tokens can also be overridden per-persona
+- The provider must be configured in `config.json` — if a persona references an unconfigured provider, the agent falls back to the default and logs a warning
 
 ### 8.3 Switching Personas
 
 The user can switch personas in several ways:
 
-- **In conversation:** "Switch to professional mode" — the agent detects this and changes the active persona
-- **Via config:** Edit `~/.remy/config.json` and set `persona.active`
+- **In conversation:** "Switch to creative mode" — the agent detects this and changes the active persona (and model if overridden)
+- **Via GUI:** Persona Studio tab — click any persona to activate it immediately
 - **Scheduled:** A persona could be tied to time of day (e.g., professional during work hours, casual in the evening)
 
-When switching, the agent acknowledges the change and adjusts its behavior immediately.
+When switching, the agent acknowledges the change and adjusts its behavior immediately. If the model changes, the switch happens on the next message (the current response finishes with the old model).
 
 ### 8.4 Persona + Memory Interaction
 
 Personas and memory are orthogonal:
 
-- **Persona** = how the agent behaves (tone, style, constraints)
+- **Persona** = how the agent behaves (tone, style, constraints, model)
 - **Memory** = what the agent knows (facts about the user, past conversations)
 - The persona influences *how* the agent uses memory — a proactive persona surfaces relevant memories more readily; a formal persona presents them more structured
 
@@ -692,18 +796,161 @@ The core loop runs for every user message:
 
 ## 10. Interfaces
 
-### 10.1 Telegram Interface
+### 10.1 Desktop GUI (Primary Interface — Wails + Svelte)
 
-- Uses the Telegram Bot API (long polling or webhooks)
+The primary way to interact with Remy is through a native desktop window built with **Wails** (Go backend + HTML/CSS/JS frontend). The GUI is more than just a chat window — it's a control panel for the entire agent.
+
+**Why Wails:**
+- Produces a single, self-contained binary — no separate server or browser needed
+- Go backend calls the agent core directly via Go method bindings
+- Frontend is standard HTML/CSS/JS (Svelte recommended) — easy to style and iterate
+- Cross-platform (macOS, Linux, Windows) from one codebase
+- Native window chrome — feels like a real app, not a web page
+
+**Design principles:**
+
+The GUI should feel like a well-crafted native app — clean, warm, and unobtrusive. The agent is a conversational companion, so the interface should feel like a comfortable messaging app, not a developer tool.
+
+- **Calm and focused** — plenty of whitespace, muted colors, nothing flashing or competing for attention. The chat is the hero; everything else is a panel or tab away.
+- **Native feel** — use system fonts (San Francisco on macOS, Segoe UI on Windows), respect system accent colors, support dark mode and light mode automatically. No custom scrollbars, no heavy shadows, no "web app" tells.
+- **Warm, not cold** — a subtle accent color (a soft blue or warm amber) for the agent's messages and interactive elements. Rounded corners on bubbles, gentle transitions, no harsh borders.
+- **Typography-first** — the message content is the most important thing. Use a readable font size (15-16px for body text), generous line height (1.5), and proper hierarchy. Code blocks in messages use a monospace font with a subtle background.
+- **Motion with purpose** — messages fade in smoothly, the typing indicator pulses gently, tab transitions are subtle. No gratuitous animations, but enough motion to feel alive.
+- **Keyboard-friendly** — all common actions have keyboard shortcuts (Cmd+Enter to send, Cmd+K to search, Cmd+, for settings, Escape to close panels, Tab to switch between tabs).
+
+**Layout:**
+
+The window has a fixed sidebar on the left (narrow, ~48px) with icon-only tab buttons, and the main content area fills the rest. This gives maximum space to the active tab while keeping navigation always visible and one click away.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ● ● ●                                          Remy        │
+├────┬─────────────────────────────────────────────────────────┤
+│    │                                                        │
+│ 💬 │  (Chat — full-width message list and input)             │
+│    │                                                        │
+│ 🧠 │                                                        │
+│    │                                                        │
+│ 📋 │                                                        │
+│    │                                                        │
+│ 👤 │                                                        │
+│    │                                                        │
+│ 📜 │                                                        │
+│    │                                                        │
+│ ⚙  │                                                        │
+│    │                                                        │
+└────┴─────────────────────────────────────────────────────────┘
+```
+
+The sidebar icons are small and muted (no labels — the tooltip shows the name on hover). The active tab's icon is highlighted with the accent color. The sidebar is always visible, so switching tabs is instant.
+
+**Tab 1 — Chat (default):**
+
+The chat view is a two-column layout: a narrow conversation list on the left (~200px) and the active conversation on the right. This supports future multi-conversation use but keeps the single-conversation case clean.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Conversations          │  Remy                          │
+├─────────────────────────┼────────────────────────────────────┤
+│                         │                                    │
+│  ● Today                │  ┌──────────────────────────┐      │
+│    What do you think... │  │ Hey, what do you think   │      │
+│                         │  │ about using Wails for    │      │
+│  Yesterday              │  │ the GUI?                 │      │
+│    Can you remind me... │  └──────────────────────────┘      │
+│                         │                                    │
+│  Last week              │  ┌──────────────────────────┐      │
+│    How does memory...   │  │ │ Wails is a great        │      │
+│                         │  │ │ choice. It produces a   │      │
+│                         │  │ │ single binary and...    │      │
+│                         │  │ └────────────────────────┘      │
+│                         │                                    │
+│                         │  ┌────────────────────────────────┐ │
+│                         │  │ Type a message...        [Send] │ │
+│                         │  └────────────────────────────────┘ │
+└─────────────────────────┴──────────────────────────────────────┘
+```
+
+- **Conversation list** — shows recent conversations with a preview of the last message. The current conversation is highlighted. For a single-user agent, there's typically just one active conversation, but the list allows creating new "topics" or revisiting old ones.
+- **Message bubbles** — user messages are right-aligned with a subtle background color. Agent messages are left-aligned with a white/light background and a small avatar (a simple "R" in a circle with the accent color). Bubbles have rounded corners and subtle shadows.
+- **Streaming** — as the agent generates a response, tokens appear inline with a subtle cursor animation. The user can interrupt generation by clicking a stop button that appears next to the typing indicator.
+- **Markdown rendering** — inline code gets a monospace font with a subtle background. Code blocks get syntax highlighting and a copy button. Links are clickable. Lists render with proper indentation.
+- **Interface indicator** — messages from Telegram show a small Telegram icon next to the timestamp. Messages from the GUI show nothing (it's the default). This is subtle — just a tiny 12x12 icon.
+- **Empty state** — when there are no messages yet, show a warm welcome message: "I'm Remy, your personal assistant. Ask me anything, or tell me about your day." with a subtle illustration or icon.
+- **Scroll behavior** — auto-scrolls to the bottom on new messages. If the user has scrolled up to read history, a "Jump to bottom" button appears. Smooth scrolling.
+
+**Tab 2 — Memory Explorer:**
+
+A clean, card-based layout for browsing the agent's knowledge.
+
+- **Facts panel** — facts are displayed as cards in a grid, grouped by category with section headers. Each card shows the fact text, a confidence bar (visual indicator of 0.0-1.0), and a small "source" link. Hover reveals edit and delete icons. Clicking edit opens an inline text input.
+- **Episode timeline** — a vertical timeline with dots and lines. Each entry shows the date, a one-line summary, and topic tags. Clicking expands the entry to show the full summary and a "View messages" button that opens the relevant messages in the Chat tab.
+- **Entity graph** — a simple force-directed graph rendered with Canvas or SVG. Nodes are entities (colored by type), edges are relationships. Clicking a node highlights it and shows a side panel with details and linked facts. The graph is pannable and zoomable.
+- **Search** — a prominent search bar at the top with a toggle between "semantic" and "full-text" search. Results appear below as a list with relevance scores and snippets. Pressing Enter or clicking a result navigates to the relevant detail view.
+- **Scratchpad viewer** — a simple text area showing the scratchpad content, with an "Edit" toggle that makes it editable. Changes are saved automatically on blur.
+
+**Tab 3 — Tasks & Schedule:**
+
+A clean list-based layout.
+
+- **Upcoming reminders** — a list with each reminder showing: time (relative + absolute), the reminder text, and action buttons (Snooze 1h, Edit, Cancel). Past reminders are shown in a separate "Fired" section with a strikethrough style.
+- **Recurring schedule** — a list of recurring tasks with a toggle switch, the cron expression in human-readable form ("Every day at 8:00 AM"), next fire time, and edit/delete buttons.
+- **Create reminder** — a simple inline form that appears when clicking "+ New Reminder". A date/time picker (native OS picker), a text input for the message, and a "Create" button. For recurring, a set of preset buttons ("Daily", "Weekdays", "Weekly") plus a custom cron input.
+- **Empty state** — "No reminders yet. Ask Remy to remind you about something, or create one here."
+
+**Tab 4 — Persona Studio:**
+
+A split-panel layout: persona list on the left, editor on the right.
+
+- **Persona list** — a vertical list of persona cards. Each card shows the name, a small tag for the provider/model override (e.g., "Ollama · llama3.1:8b"), and a brief description. The active persona has a highlighted border and a checkmark. Clicking a card selects it and loads it into the editor.
+- **Persona editor** — the right panel has two sections:
+  - **Top: Model configuration** — structured form fields in a horizontal row: provider dropdown, model dropdown (populated from the provider), temperature slider, max tokens input. These fields update the frontmatter automatically.
+  - **Bottom: Persona body** — a clean Markdown editor with a live preview toggle. The editor has a monospace font, line numbers, and syntax highlighting for Markdown. The preview renders the persona body as it would appear in the system prompt.
+- **Create new** — a button at the top of the persona list that opens a dialog: "Name your persona" + "Create from template" / "Duplicate current". The template includes default frontmatter and a starter persona body.
+- **Comparison** — a button that opens a side-by-side view of two selected personas, showing both the frontmatter fields and the body text with differences highlighted.
+- **Empty state** — if no personas exist, show a prompt to create the first one.
+
+**Tab 5 — Activity Log (Audit Trail):**
+
+A log viewer with filtering.
+
+- **Timeline** — a scrollable list of log entries, each with a timestamp, an icon for the type (message, retrieval, function call, LLM request, consolidation, error), and a one-line description. Clicking an entry expands it to show full details (JSON payload, prompt text, etc.).
+- **Filters** — a row of filter chips at the top: "All", "Messages", "Retrievals", "Functions", "LLM", "Consolidation", "Errors". Clicking a chip filters the timeline. A date range picker is also available.
+- **Prompt inspector** — when clicking an LLM-related entry, a modal opens showing the full prompt that was sent to the model, with syntax-highlighted sections (system prompt, context, conversation history, user message). A "Copy" button is available.
+- **Search** — a search bar that filters log entries by text content.
+- **Clear** — a button to clear the log (with confirmation). The log is also automatically pruned after a configurable number of entries.
+
+**Tab 6 — Settings:**
+
+A standard settings layout with sections.
+
+- **Provider management** — a list of configured providers as cards. Each card shows the provider name, endpoint (truncated), and a status indicator (green dot = connected, red = error). Clicking a card opens an edit form. An "Add Provider" button at the bottom opens a form to add a new one.
+- **Default provider** — a dropdown at the top of the provider section.
+- **Model parameters** — temperature and max_tokens sliders with numeric labels.
+- **Interface management** — a toggle for Telegram with the bot token input (masked, with a show/hide toggle). Connection status indicator.
+- **Memory settings** — database path (with a "Browse" button that opens a native file dialog), working memory turn count (number input), consolidation delays (sliders with labels like "5 min", "30 min").
+- **Data management** — "Export Database" button (opens a save dialog), "Import Database" button (opens a file picker, with a warning), "Clear All Memory" button (with a confirmation dialog that requires typing "DELETE" to confirm).
+- **About** — version number, build date, Go version, links to GitHub and documentation.
+
+**System tray:**
+- Remy minimizes to the system tray when the window is closed
+- Tray menu: "Open Remy", "Quit"
+- Desktop notifications for reminders and scheduled messages (even when the window is closed)
+- Tray icon shows a subtle indicator when the agent is processing or has unread activity
+
+**How it works:**
+- Wails binds Go methods (e.g., `SendMessage`, `GetHistory`, `GetFacts`, `GetTasks`, `SwitchPersona`, `UpdatePersona`, `SaveConfig`) to the frontend
+- The frontend calls these methods directly from JavaScript
+- The Go backend routes messages through the same agent core as any other interface
+- Streaming responses are pushed to the frontend via Wails' event system
+- The GUI subscribes to backend events (new message, task fired, consolidation complete) for real-time updates
+
+### 10.2 Telegram Interface (Optional)
+
+- Uses the Telegram Bot API (long polling)
 - Each chat with the bot is a conversation with the agent
-- Supports text messages, commands, and file attachments
-- Messages are routed through the message bus
-
-### 10.2 CLI Interface
-
-- Interactive terminal interface
-- Supports stdin/stdout for scripting
-- Useful for testing and power users
+- Supports text messages and commands
+- Runs alongside the GUI or standalone via `--daemon`
 
 ### 10.3 Interface Contract
 
@@ -715,7 +962,7 @@ type Interface interface {
 }
 ```
 
-All interfaces implement this contract. Adding a new interface (e.g., Discord, WhatsApp, Slack) means implementing these three methods.
+All interfaces implement this contract. The GUI interface is implemented via Wails bindings that call into the agent core directly. Adding a new interface (e.g., Discord, WhatsApp, Slack) means implementing these three methods.
 
 ---
 
@@ -746,8 +993,8 @@ remy/
 │   │   └── provider.go          # Provider abstraction
 │   ├── interface/
 │   │   ├── interface.go         # Interface contract
-│   │   ├── cli/
-│   │   │   └── cli.go
+│   │   ├── gui/
+│   │   │   └── gui.go           # Wails app setup and bindings
 │   │   └── telegram/
 │   │       └── telegram.go
 │   ├── scheduler/
@@ -757,6 +1004,31 @@ remy/
 │   │   └── persona.go           # Persona loading and management
 │   └── config/
 │       └── config.go            # Configuration loading
+├── frontend/                     # Wails frontend (Svelte)
+│   ├── src/
+│   │   ├── App.svelte           # Main app — tab container, routing
+│   │   ├── components/
+│   │   │   ├── Chat.svelte           # Chat message list + input
+│   │   │   ├── MessageBubble.svelte
+│   │   │   ├── MemoryExplorer.svelte
+│   │   │   ├── FactList.svelte
+│   │   │   ├── EpisodeTimeline.svelte
+│   │   │   ├── EntityGraph.svelte
+│   │   │   ├── TaskManager.svelte
+│   │   │   ├── PersonaStudio.svelte
+│   │   │   ├── PersonaEditor.svelte
+│   │   │   ├── ActivityLog.svelte
+│   │   │   ├── PromptInspector.svelte
+│   │   │   ├── Settings.svelte
+│   │   │   └── SystemTray.svelte
+│   │   ├── lib/
+│   │   │   ├── wails.js         # Wails runtime bindings
+│   │   │   └── stores.js        # Svelte stores for state
+│   │   └── main.js
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── wails.json                    # Wails project config
 ├── go.mod
 ├── go.sum
 └── Makefile
@@ -826,29 +1098,37 @@ func TestStoreSaveMessage(t *testing.T) {
 
 ### 11.6 Build & Release
 
-- **Single binary** — `CGO_ENABLED=1 go build -o remy ./cmd/remy` (CGO needed for sqlite3)
-- **Cross-compilation** — use `GOOS` and `GOARCH` for macOS (arm64/amd64), Linux (amd64/arm64), Windows (amd64)
-- **Makefile** — common targets: `build`, `test`, `lint`, `clean`, `release`
+- **Single binary** — `wails build` produces a native executable with the frontend embedded
+- **Cross-compilation** — use `wails build -platform` for macOS (arm64/amd64), Linux (amd64/arm64), Windows (amd64)
+- **Development** — `wails dev` runs the app with hot-reload for the frontend
+- **Makefile** — common targets: `build`, `dev`, `test`, `lint`, `clean`, `release`
 - **Versioning** — `-ldflags="-X main.Version=$(git describe --tags)"` for build info
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
 | Language | Go | Single binary, good concurrency, cross-compilation |
+| GUI Framework | Wails + Svelte | Native desktop app from Go + HTML/CSS/JS, single binary |
 | Database | SQLite + sqlite-vec | Single file, no server, hybrid structured+vector queries |
 | LLM API | OpenAI-compatible (Ollama) | Local models, standard API |
 | Embeddings | Local model via Ollama | Same API as LLM, no extra dependency |
 | Telegram | Telegram Bot API | Long polling, no webhook server needed |
-| CLI | Go standard library + readline | Simple, no external deps |
 
 ### 11.1 Go Dependencies
 
 ```
 github.com/mattn/go-sqlite3          # SQLite driver
 github.com/asg017/sqlite-vec-go      # Vector extension for SQLite
+github.com/wailsapp/wails/v2         # Wails GUI framework
 github.com/go-telegram/bot           # Telegram Bot API
-github.com/chzyer/readline           # CLI readline support
 github.com/google/uuid                # UUID generation
 github.com/robfig/cron               # Cron expression parsing
+```
+
+### 11.2 Frontend Dependencies
+
+```
+svelte          # UI framework
+wailsjs/runtime # Wails JavaScript runtime bindings
 ```
 
 ---
@@ -857,17 +1137,29 @@ github.com/robfig/cron               # Cron expression parsing
 
 ```json
 {
-  "provider": {
-    "name": "ollama",
-    "endpoint": "http://localhost:11434/v1",
-    "api_key": "",
-    "chat_model": "llama3.1:8b",
-    "embedding_model": "nomic-embed-text",
-    "parameters": {
-      "temperature": 0.7,
-      "max_tokens": 4096
+  "providers": {
+    "ollama": {
+      "endpoint": "http://localhost:11434/v1",
+      "api_key": "",
+      "chat_model": "llama3.1:8b",
+      "embedding_model": "nomic-embed-text",
+      "parameters": {
+        "temperature": 0.7,
+        "max_tokens": 4096
+      }
+    },
+    "openai": {
+      "endpoint": "https://api.openai.com/v1",
+      "api_key": "${OPENAI_API_KEY}",
+      "chat_model": "gpt-4o",
+      "embedding_model": "text-embedding-3-small",
+      "parameters": {
+        "temperature": 0.7,
+        "max_tokens": 4096
+      }
     }
   },
+  "default_provider": "ollama",
   "memory": {
     "db_path": "~/.remy/memory.db",
     "working_memory_turns": 20,
@@ -880,12 +1172,9 @@ github.com/robfig/cron               # Cron expression parsing
   },
   "interfaces": {
     "telegram": {
-      "enabled": true,
+      "enabled": false,
       "bot_token": "${REMY_TELEGRAM_BOT_TOKEN}",
       "allowed_users": []
-    },
-    "cli": {
-      "enabled": true
     }
   }
 }
