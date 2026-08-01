@@ -551,11 +551,11 @@ func (a *App) semanticSearch(query string) (SearchResultsDTO, error) {
 
 	results.Facts = make([]FactDTO, len(facts))
 	for i, f := range facts {
-		results.Facts[i] = factToDTO(f)
+		results.Facts[i] = factToDTO(&f)
 	}
 	results.Episodes = make([]EpisodeDTO, len(episodes))
 	for i, ep := range episodes {
-		results.Episodes[i] = episodeToDTO(ep)
+		results.Episodes[i] = episodeToDTO(&ep)
 	}
 	return results, nil
 }
@@ -571,7 +571,7 @@ func (a *App) fullTextSearch(query string) (SearchResultsDTO, error) {
 	}
 	for _, f := range allFacts {
 		if contains(f.Fact, pattern) || contains(f.Category, pattern) {
-			results.Facts = append(results.Facts, factToDTO(f))
+			results.Facts = append(results.Facts, factToDTO(&f))
 		}
 	}
 
@@ -581,13 +581,13 @@ func (a *App) fullTextSearch(query string) (SearchResultsDTO, error) {
 	}
 	for _, ep := range allEpisodes {
 		if contains(ep.Summary, pattern) || contains(ep.Topics, pattern) {
-			results.Episodes = append(results.Episodes, episodeToDTO(ep))
+			results.Episodes = append(results.Episodes, episodeToDTO(&ep))
 		}
 	}
 	return results, nil
 }
 
-func factToDTO(f memory.Fact) FactDTO {
+func factToDTO(f *memory.Fact) FactDTO {
 	return FactDTO{
 		ID:         f.ID,
 		Fact:       f.Fact,
@@ -599,7 +599,7 @@ func factToDTO(f memory.Fact) FactDTO {
 	}
 }
 
-func episodeToDTO(ep memory.Episode) EpisodeDTO {
+func episodeToDTO(ep *memory.Episode) EpisodeDTO {
 	return EpisodeDTO{
 		ID:         ep.ID,
 		Summary:    ep.Summary,
