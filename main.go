@@ -41,6 +41,25 @@ func (e wailsEmitter) Emit(event string, data any) error {
 }
 
 func main() {
+	// Handle the "init" subcommand before flag parsing
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		if err := initCmd(); err != nil {
+			log.Fatalf("Init failed: %v", err)
+		}
+		return
+	}
+
+	// First-run detection
+	if msg := firstRunCheck(); msg != "" {
+		fmt.Println("╔══════════════════════════════════════════════════════╗")
+		fmt.Println("║               Welcome to Remy!                      ║")
+		fmt.Println("╚══════════════════════════════════════════════════════╝")
+		fmt.Println()
+		fmt.Print(msg)
+		fmt.Println("Starting with default configuration...")
+		fmt.Println()
+	}
+
 	daemonMode := flag.Bool("daemon", false, "Run in daemon mode (no GUI, Telegram only)")
 	flag.Parse()
 
