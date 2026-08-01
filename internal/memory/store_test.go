@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/danmurf/remy/internal/memory"
 )
 
@@ -102,7 +103,7 @@ func TestGetMessages(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		msg := memory.Message{
 			ID: uuid.NewString(), UserID: "user1", Role: "user",
-			Content: "Message " + string(rune('0'+i)),
+			Content:   "Message " + string(rune('0'+i)),
 			Timestamp: int64(1000 + i), Interface: "gui",
 		}
 		if err := s.SaveMessage(ctx, &msg); err != nil {
@@ -134,7 +135,7 @@ func TestGetMessagesBySession(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		msg := memory.Message{
 			ID: uuid.NewString(), UserID: "user1", Role: "user",
-			Content: "Session msg " + string(rune('0'+i)),
+			Content:   "Session msg " + string(rune('0'+i)),
 			Timestamp: int64(1000 + i), Interface: "gui", SessionID: "session-a",
 		}
 		if err := s.SaveMessage(ctx, &msg); err != nil {

@@ -76,7 +76,7 @@ func TestConfig(t *testing.T) {
 						}
 					}
 				}`
-				if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+				if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 					t.Fatal(err)
 				}
 				return path
@@ -95,7 +95,7 @@ func TestConfig(t *testing.T) {
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				path := filepath.Join(dir, "config.json")
-				if err := os.WriteFile(path, []byte(`{invalid json}`), 0o644); err != nil {
+				if err := os.WriteFile(path, []byte(`{invalid json}`), 0o600); err != nil {
 					t.Fatal(err)
 				}
 				return path
@@ -122,10 +122,10 @@ func TestConfig(t *testing.T) {
 		},
 		{
 			name: "config path",
-			setup: func(t *testing.T) string {
+			setup: func(_ *testing.T) string {
 				return "" // not used
 			},
-			check: func(t *testing.T, cfg *config.Config) {
+			check: func(t *testing.T, _ *config.Config) {
 				path, err := config.ConfigPath()
 				if err != nil {
 					t.Fatalf("ConfigPath failed: %v", err)

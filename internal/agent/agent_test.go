@@ -7,19 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
+
 	"github.com/danmurf/remy/internal/agent"
 	"github.com/danmurf/remy/internal/agent/mock_agent"
 	"github.com/danmurf/remy/internal/llm"
 	"github.com/danmurf/remy/internal/llm/mock_llm"
 	"github.com/danmurf/remy/internal/memory"
-	"go.uber.org/mock/gomock"
 )
-
-func newTestAgent(store agent.Store, provider llm.Provider, embedder agent.Embedder) *agent.Agent {
-	cfg := agent.DefaultConfig()
-	cfg.WorkingMemoryTurns = 20
-	return agent.NewAgent(store, provider, embedder, cfg)
-}
 
 func TestAgent_NewAgent(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -185,7 +180,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "store save error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, _ *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Return(errors.New("database is locked"))
 			},
 			wantErr: true,
@@ -193,7 +188,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "embedding error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
@@ -263,7 +258,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "scratchpad error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
@@ -281,7 +276,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "episode search error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
@@ -297,7 +292,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "fact search error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
@@ -314,7 +309,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "get messages error",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()
@@ -333,7 +328,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		{
 			name:    "vector save error on user message",
 			userMsg: "Hello",
-			mock: func(store *mock_agent.MockStore, provider *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
+			mock: func(store *mock_agent.MockStore, _ *mock_llm.MockProvider, embedder *mock_agent.MockEmbedder) {
 				store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 					if msg.ID == "" {
 						msg.ID = uuid.NewString()

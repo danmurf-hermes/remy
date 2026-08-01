@@ -67,7 +67,7 @@ func TestChat(t *testing.T) {
 		},
 		{
 			name: "empty choices",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				_ = json.NewEncoder(w).Encode(llm.ChatResponse{ID: "chat-1", Object: "chat.completion", Choices: []llm.Choice{}})
 			},
 			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
@@ -75,7 +75,7 @@ func TestChat(t *testing.T) {
 		},
 		{
 			name: "server error",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte("internal error"))
 			},
@@ -84,7 +84,7 @@ func TestChat(t *testing.T) {
 		},
 		{
 			name: "timeout",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(_ http.ResponseWriter, r *http.Request) {
 				<-r.Context().Done()
 			},
 			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
@@ -92,7 +92,7 @@ func TestChat(t *testing.T) {
 		},
 		{
 			name: "malformed response",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write([]byte(`{invalid json`))
 			},
 			req:     llm.ChatRequest{Messages: []llm.Message{{Role: "user", Content: "hello"}}},
@@ -212,7 +212,7 @@ func TestChatStream_Success(t *testing.T) {
 }
 
 func TestChatStream_ServerError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("internal error"))
 	}))
@@ -229,7 +229,7 @@ func TestChatStream_ServerError(t *testing.T) {
 
 func TestChatStream_CanceledContext(t *testing.T) {
 	done := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
 		flusher, ok := w.(http.Flusher)
@@ -304,7 +304,7 @@ func TestEmbed(t *testing.T) {
 		},
 		{
 			name: "empty response",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				_ = json.NewEncoder(w).Encode(llm.EmbedResponse{Data: []struct {
 					Embedding []float64 `json:"embedding"`
 				}{}})
@@ -314,7 +314,7 @@ func TestEmbed(t *testing.T) {
 		},
 		{
 			name: "server error",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 			text:    "test",
@@ -322,7 +322,7 @@ func TestEmbed(t *testing.T) {
 		},
 		{
 			name: "timeout",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(_ http.ResponseWriter, r *http.Request) {
 				<-r.Context().Done()
 			},
 			text:    "test",

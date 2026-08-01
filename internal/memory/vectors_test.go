@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/danmurf/remy/internal/memory"
+	"github.com/google/uuid"
 )
 
 func TestSerializeDeserializeVector(t *testing.T) {
@@ -93,7 +93,7 @@ func TestGenerateEmbedding(t *testing.T) {
 		},
 		{
 			name: "server error",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 			text:    "test",
@@ -101,7 +101,7 @@ func TestGenerateEmbedding(t *testing.T) {
 		},
 		{
 			name: "empty response",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				_ = json.NewEncoder(w).Encode(memory.EmbeddingResponse{Data: []struct {
 					Embedding []float64 `json:"embedding"`
 				}{}})
@@ -111,7 +111,7 @@ func TestGenerateEmbedding(t *testing.T) {
 		},
 		{
 			name: "timeout",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(_ http.ResponseWriter, r *http.Request) {
 				<-r.Context().Done()
 			},
 			text:    "test",

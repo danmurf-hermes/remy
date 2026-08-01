@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/danmurf/remy/internal/llm"
 	"github.com/danmurf/remy/internal/memory"
 )
