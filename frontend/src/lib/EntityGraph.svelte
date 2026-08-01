@@ -198,30 +198,30 @@
 
   .error-banner {
     padding: 8px 12px;
-    background: #fff2f0;
-    border: 1px solid #ffccc7;
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-subtle);
     border-radius: 6px;
-    color: #cf1322;
+    color: var(--danger-text);
     font-size: 13px;
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 0;
     font-size: 14px;
   }
 
   .empty-state {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 20px;
     font-size: 14px;
   }
 
   .graph-container {
-    background: #fafafa;
-    border: 1px solid #e0e0e0;
+    background: var(--graph-bg);
+    border: 1px solid var(--graph-border);
     border-radius: 10px;
     overflow: hidden;
   }
@@ -232,13 +232,13 @@
   }
 
   .edge-line {
-    stroke: #c0c0c5;
+    stroke: var(--graph-edge);
     stroke-dasharray: 4;
   }
 
   .edge-label {
     font-size: 10px;
-    fill: #86868b;
+    fill: var(--text-tertiary);
     text-anchor: middle;
     pointer-events: none;
   }
@@ -257,7 +257,7 @@
   }
 
   .entity-node.selected rect {
-    stroke: #1d1d1f;
+    stroke: var(--text-primary);
     stroke-width: 2;
   }
 
@@ -268,8 +268,8 @@
   }
 
   .details-panel {
-    background: white;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
     border-radius: 10px;
     padding: 16px;
   }
@@ -289,19 +289,19 @@
   }
 
   .detail-label {
-    color: #86868b;
+    color: var(--text-tertiary);
     font-weight: 500;
     flex-shrink: 0;
     min-width: 80px;
   }
 
   .detail-value {
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .type-badge {
     font-size: 11px;
-    color: white;
+    color: var(--text-inverse);
     padding: 2px 10px;
     border-radius: 10px;
     font-weight: 500;
@@ -316,11 +316,11 @@
   .rel-list li {
     margin-bottom: 4px;
     font-size: 13px;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .rel-type {
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 12px;
   }
 </style>

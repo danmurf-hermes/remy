@@ -338,18 +338,19 @@
   }
 
   .btn-primary {
-    background: #0071e3;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: background 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-primary:disabled {
@@ -358,18 +359,19 @@
   }
 
   .btn-secondary {
-    background: #e8e8ed;
-    color: #1d1d1f;
+    background: var(--tag-bg);
+    color: var(--text-primary);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
+    transition: background 0.15s ease;
   }
 
   .btn-danger {
-    background: #ff3b30;
-    color: white;
+    background: var(--danger);
+    color: var(--text-inverse);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
@@ -378,8 +380,8 @@
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: var(--danger-subtle);
+    color: var(--danger-text);
     padding: 8px 12px;
     border-radius: 8px;
     margin-bottom: 12px;
@@ -387,8 +389,8 @@
   }
 
   .success-banner {
-    background: #e8f8e8;
-    color: #1a7d1a;
+    background: var(--success-subtle);
+    color: var(--success-text);
     padding: 8px 12px;
     border-radius: 8px;
     margin-bottom: 12px;
@@ -397,7 +399,7 @@
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -405,7 +407,7 @@
     display: flex;
     gap: 4px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #e8e8ed;
+    border-bottom: 1px solid var(--border-light);
     padding-bottom: 0;
   }
 
@@ -415,19 +417,20 @@
     background: transparent;
     font-size: 13px;
     cursor: pointer;
-    color: #6e6e73;
+    color: var(--text-secondary);
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
+    font-family: inherit;
   }
 
   .settings-tab:hover {
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .settings-tab.active {
-    color: #0071e3;
-    border-bottom-color: #0071e3;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
 
   .section {
@@ -445,7 +448,7 @@
   }
 
   .provider-card {
-    background: #f5f5f7;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
@@ -471,34 +474,44 @@
   }
 
   .status-badge.connected {
-    background: #e8f8e8;
-    color: #1a7d1a;
+    background: var(--success-subtle);
+    color: var(--success-text);
   }
 
   .status-badge.disconnected {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: var(--danger-subtle);
+    color: var(--danger-text);
   }
 
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .slider {
     width: 100%;
     margin-bottom: 12px;
+    accent-color: var(--accent);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
@@ -507,18 +520,19 @@
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    color: #1d1d1f;
+    color: var(--text-primary);
     margin-bottom: 12px;
   }
 
   .toggle {
     width: 20px;
     height: 20px;
+    accent-color: var(--accent);
   }
 
   .hint {
     font-size: 12px;
-    color: var(--text-secondary, #6e6e73);
+    color: var(--text-secondary);
     margin-top: -8px;
     margin-bottom: 12px;
   }
@@ -530,7 +544,7 @@
   }
 
   .about-info {
-    background: #f5f5f7;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 16px;
   }
@@ -539,7 +553,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #e8e8ed;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .about-row:last-child {
@@ -548,12 +562,12 @@
 
   .about-label {
     font-size: 13px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .about-value {
     font-size: 13px;
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 </style>

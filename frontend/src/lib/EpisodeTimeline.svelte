@@ -170,17 +170,17 @@
 
   .error-banner {
     padding: 8px 12px;
-    background: #fff2f0;
-    border: 1px solid #ffccc7;
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-subtle);
     border-radius: 6px;
-    color: #cf1322;
+    color: var(--danger-text);
     font-size: 13px;
     margin-bottom: 12px;
   }
 
   .empty-state {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 20px;
     font-size: 14px;
   }
@@ -202,8 +202,8 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 0 1px #e0e0e0;
+    border: 2px solid var(--bg-primary);
+    box-shadow: 0 0 0 1px var(--timeline-line);
     z-index: 1;
   }
 
@@ -213,24 +213,24 @@
     top: 16px;
     bottom: 0;
     width: 2px;
-    background: #e0e0e0;
+    background: var(--timeline-line);
   }
 
   .timeline-content {
-    background: white;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
     border-radius: 10px;
     padding: 12px 14px;
     cursor: pointer;
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.15s ease;
   }
 
   .timeline-content:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px var(--shadow-md);
   }
 
   .timeline-content.expanded {
-    border-color: #007aff;
+    border-color: var(--accent);
   }
 
   .timeline-header {
@@ -242,7 +242,7 @@
 
   .timeline-date {
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-tertiary);
     font-weight: 500;
   }
 
@@ -251,7 +251,7 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .importance-dot {
@@ -265,13 +265,13 @@
     margin: 0;
     font-size: 14px;
     line-height: 1.5;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .timeline-details {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px solid #f0f0f5;
+    border-top: 1px solid var(--border-subtle);
   }
 
   .detail-row {
@@ -283,14 +283,14 @@
   }
 
   .detail-label {
-    color: #86868b;
+    color: var(--text-tertiary);
     font-weight: 500;
     flex-shrink: 0;
     min-width: 60px;
   }
 
   .detail-value {
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .topic-tags {
@@ -301,8 +301,8 @@
 
   .topic-tag {
     font-size: 11px;
-    background: #e8f0fe;
-    color: #1967d2;
+    background: var(--badge-bg);
+    color: var(--badge-text);
     padding: 2px 8px;
     border-radius: 10px;
   }
@@ -314,18 +314,18 @@
 
   .load-more button {
     padding: 8px 24px;
-    background: #f0f0f5;
-    border: 1px solid #d0d0d5;
+    background: var(--tag-bg);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 14px;
     cursor: pointer;
     font-family: inherit;
-    color: #1d1d1f;
-    transition: background 0.15s;
+    color: var(--text-primary);
+    transition: background 0.15s ease;
   }
 
   .load-more button:hover:not(:disabled) {
-    background: #e0e0e5;
+    background: var(--hover-bg);
   }
 
   .load-more button:disabled {

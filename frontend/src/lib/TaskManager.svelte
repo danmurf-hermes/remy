@@ -224,18 +224,19 @@
   }
 
   .btn-primary {
-    background: #0071e3;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: background 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-small {
@@ -247,17 +248,17 @@
   }
 
   .btn-danger {
-    background: #ff3b30;
-    color: white;
+    background: var(--danger);
+    color: var(--text-inverse);
   }
 
   .btn-danger:hover {
-    background: #d32f2f;
+    background: var(--danger-hover);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: var(--danger-subtle);
+    color: var(--danger-text);
     padding: 8px 12px;
     border-radius: 8px;
     margin-bottom: 12px;
@@ -265,7 +266,7 @@
   }
 
   .new-task-form {
-    background: #f5f5f7;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 20px;
@@ -279,11 +280,20 @@
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .form-row {
@@ -294,19 +304,19 @@
   .form-row label {
     flex: 1;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -320,11 +330,11 @@
     margin: 0 0 12px 0;
     font-size: 15px;
     font-weight: 600;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .empty {
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 13px;
     padding: 12px 0;
   }
@@ -334,7 +344,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px;
-    background: #f5f5f7;
+    background: var(--card-bg);
     border-radius: 10px;
     margin-bottom: 8px;
   }
@@ -356,7 +366,7 @@
 
   .task-time {
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .task-actions {

@@ -98,17 +98,17 @@
 
   .error-banner {
     padding: 8px 12px;
-    background: #fff2f0;
-    border: 1px solid #ffccc7;
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-subtle);
     border-radius: 6px;
-    color: #cf1322;
+    color: var(--danger-text);
     font-size: 13px;
     margin-bottom: 12px;
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 0;
     font-size: 14px;
   }
@@ -131,19 +131,19 @@
   }
 
   .saved-indicator {
-    color: #34c759;
+    color: var(--success);
     font-weight: 500;
   }
 
   .unsaved-indicator {
-    color: #ff9500;
+    color: var(--warning);
     font-weight: 500;
   }
 
   .scratchpad-textarea {
     flex: 1;
     width: 100%;
-    border: 1px solid #d0d0d5;
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     padding: 12px;
     font-size: 14px;
@@ -152,17 +152,17 @@
     resize: none;
     outline: none;
     box-sizing: border-box;
-    background: #fafafa;
-    color: #1d1d1f;
+    background: var(--input-bg);
+    color: var(--text-primary);
   }
 
   .scratchpad-textarea:focus {
-    border-color: #007aff;
-    background: white;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .scratchpad-textarea::placeholder {
-    color: #c0c0c5;
+    color: var(--text-tertiary);
   }
 
   .scratchpad-footer {
@@ -171,6 +171,6 @@
 
   .hint {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 </style>

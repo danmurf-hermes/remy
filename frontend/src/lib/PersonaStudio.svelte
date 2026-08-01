@@ -271,28 +271,30 @@
   }
 
   .btn-primary {
-    background: #0071e3;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: background 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-secondary {
-    background: #e8e8ed;
-    color: #1d1d1f;
+    background: var(--tag-bg);
+    color: var(--text-primary);
     border: none;
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
+    transition: background 0.15s ease;
   }
 
   .btn-small {
@@ -305,17 +307,18 @@
 
   .btn-outline {
     background: transparent;
-    border: 1px solid #d2d2d7;
-    color: #1d1d1f;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    transition: background 0.15s ease;
   }
 
   .btn-outline:hover {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: var(--danger-subtle);
+    color: var(--danger-text);
     padding: 8px 12px;
     margin: 12px 24px 0;
     border-radius: 8px;
@@ -324,7 +327,7 @@
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -346,7 +349,7 @@
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .persona-card {
@@ -355,20 +358,20 @@
     margin-bottom: 8px;
     cursor: pointer;
     border: 1px solid transparent;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
   }
 
   .persona-card:hover {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .persona-card.active {
-    background: #e8f0fe;
-    border-color: #0071e3;
+    background: var(--accent-subtle);
+    border-color: var(--accent);
   }
 
   .persona-card.selected {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .persona-name {
@@ -382,8 +385,8 @@
 
   .active-badge {
     font-size: 10px;
-    background: #34c759;
-    color: white;
+    background: var(--success);
+    color: var(--text-inverse);
     padding: 1px 6px;
     border-radius: 4px;
     font-weight: 600;
@@ -397,10 +400,10 @@
 
   .tag {
     font-size: 10px;
-    background: #e8e8ed;
+    background: var(--tag-bg);
     padding: 2px 6px;
     border-radius: 4px;
-    color: #6e6e73;
+    color: var(--tag-text);
   }
 
   .editor-panel {
@@ -422,7 +425,7 @@
   }
 
   .model-config {
-    background: #f5f5f7;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
@@ -437,22 +440,32 @@
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .slider {
     width: 100%;
     margin-bottom: 8px;
+    accent-color: var(--accent);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
@@ -465,21 +478,30 @@
   .textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 13px;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
     box-sizing: border-box;
     resize: vertical;
+    background: var(--input-bg);
+    color: var(--text-primary);
+  }
+
+  .textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .preview {
-    background: white;
-    border: 1px solid #d2d2d7;
+    background: var(--bg-primary);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     padding: 12px;
     font-size: 13px;
     line-height: 1.5;
+    color: var(--text-primary);
   }
 
   .no-selection {
@@ -487,7 +509,7 @@
     align-items: center;
     justify-content: center;
     height: 200px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .dialog-overlay {
@@ -496,20 +518,23 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--overlay-bg);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 1000;
   }
 
   .dialog {
-    background: white;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 24px;
-    width: 400px;
-    max-height: 80vh;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 85vh;
     overflow-y: auto;
+    box-shadow: 0 8px 32px var(--shadow-lg);
   }
 
   .dialog h3 {
@@ -520,8 +545,8 @@
 
   .dialog-actions {
     display: flex;
-    justify-content: flex-end;
     gap: 8px;
+    justify-content: flex-end;
     margin-top: 16px;
   }
 </style>

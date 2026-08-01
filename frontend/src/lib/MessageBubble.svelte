@@ -62,8 +62,8 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #007aff;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -73,22 +73,23 @@
   }
 
   .bubble {
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
     font-size: 14px;
     line-height: 1.5;
     word-wrap: break-word;
+    box-shadow: 0 1px 2px var(--shadow-sm);
   }
 
   .user-bubble {
-    background: #007aff;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border-bottom-right-radius: 4px;
   }
 
   .agent-bubble {
-    background: #f0f0f5;
-    color: #1d1d1f;
+    background: var(--card-bg);
+    color: var(--text-primary);
     border-bottom-left-radius: 4px;
   }
 

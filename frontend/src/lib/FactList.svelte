@@ -182,24 +182,24 @@
 
   .error-banner {
     padding: 8px 12px;
-    background: #fff2f0;
-    border: 1px solid #ffccc7;
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-subtle);
     border-radius: 6px;
-    color: #cf1322;
+    color: var(--danger-text);
     font-size: 13px;
     margin-bottom: 12px;
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 0;
     font-size: 14px;
   }
 
   .empty-state {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px 20px;
     font-size: 14px;
     line-height: 1.5;
@@ -213,7 +213,7 @@
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -225,16 +225,16 @@
   }
 
   .fact-card {
-    background: white;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
     border-radius: 10px;
     padding: 14px;
     position: relative;
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.15s ease;
   }
 
   .fact-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px var(--shadow-md);
   }
 
   .fact-card:hover .card-actions {
@@ -249,7 +249,7 @@
     margin: 0 0 8px 0;
     font-size: 14px;
     line-height: 1.5;
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .fact-meta {
@@ -261,8 +261,8 @@
 
   .category-badge {
     font-size: 11px;
-    background: #e8f0fe;
-    color: #1967d2;
+    background: var(--badge-bg);
+    color: var(--badge-text);
     padding: 2px 8px;
     border-radius: 10px;
     font-weight: 500;
@@ -270,15 +270,15 @@
 
   .source-label {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 2px 8px;
-    background: #f0f0f5;
+    background: var(--tag-bg);
     border-radius: 10px;
   }
 
   .confidence-bar-container {
     height: 6px;
-    background: #f0f0f5;
+    background: var(--tag-bg);
     border-radius: 3px;
     overflow: hidden;
     margin-bottom: 4px;
@@ -292,7 +292,7 @@
 
   .confidence-label {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .card-actions {
@@ -315,13 +315,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
     transition: background 0.15s;
   }
 
   .action-btn:hover {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .edit-form {
@@ -332,17 +332,19 @@
 
   .edit-textarea {
     width: 100%;
-    border: 1px solid #d0d0d5;
+    border: 1px solid var(--input-border);
     border-radius: 6px;
     padding: 8px;
     font-size: 14px;
     font-family: inherit;
     resize: vertical;
     box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--text-primary);
   }
 
   .edit-textarea:focus {
-    border-color: #007aff;
+    border-color: var(--accent);
     outline: none;
   }
 
@@ -358,27 +360,29 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .edit-input {
-    border: 1px solid #d0d0d5;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 13px;
     width: 120px;
     font-family: inherit;
+    background: var(--input-bg);
+    color: var(--text-primary);
   }
 
   .edit-input:focus {
-    border-color: #007aff;
+    border-color: var(--accent);
     outline: none;
   }
 
   .conf-value {
     font-size: 12px;
     font-weight: 600;
-    color: #1d1d1f;
+    color: var(--text-primary);
     min-width: 32px;
   }
 
@@ -389,8 +393,8 @@
 
   .save-btn {
     padding: 6px 14px;
-    background: #007aff;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
     border-radius: 6px;
     font-size: 13px;
@@ -399,14 +403,14 @@
   }
 
   .save-btn:hover {
-    background: #0056cc;
+    background: var(--accent-hover);
   }
 
   .cancel-btn {
     padding: 6px 14px;
-    background: #f0f0f5;
-    color: #1d1d1f;
-    border: 1px solid #d0d0d5;
+    background: var(--tag-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--input-border);
     border-radius: 6px;
     font-size: 13px;
     cursor: pointer;
@@ -414,7 +418,7 @@
   }
 
   .cancel-btn:hover {
-    background: #e0e0e5;
+    background: var(--hover-bg);
   }
 
   .delete-confirm {
@@ -429,7 +433,7 @@
 
   .delete-text {
     font-style: italic;
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 13px !important;
   }
 
@@ -441,8 +445,8 @@
 
   .delete-yes {
     padding: 6px 14px;
-    background: #ff3b30;
-    color: white;
+    background: var(--danger);
+    color: var(--text-inverse);
     border: none;
     border-radius: 6px;
     font-size: 13px;
@@ -451,6 +455,6 @@
   }
 
   .delete-yes:hover {
-    background: #d62d20;
+    background: var(--danger-hover);
   }
 </style>
