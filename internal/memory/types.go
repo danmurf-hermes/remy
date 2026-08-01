@@ -66,3 +66,18 @@ type ActivityEntry struct {
 	MessageID string
 	SessionID string
 }
+
+// Task represents a scheduled action — either a one-shot reminder or a
+// recurring task. Tasks are stored in the database and checked periodically
+// by the scheduler.
+type Task struct {
+	ID        string
+	Type      string // "reminder" | "scheduled_message"
+	Status    string // "pending" | "fired" | "cancelled"
+	TriggerAt int64  // Unix timestamp for one-shot
+	CronExpr  string // Cron expression for recurring (e.g., "0 8 * * *")
+	Action    string // JSON describing the action
+	Context   string // JSON context to inject when firing
+	CreatedAt int64
+	FiredAt   int64
+}

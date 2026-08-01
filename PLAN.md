@@ -310,30 +310,40 @@ Every push runs:
 **Goal:** Implement the scheduler engine — create reminders, recurring tasks, fire them at the right time, deliver to interfaces.
 
 **Tasks:**
-- [ ] Create `internal/scheduler/scheduler.go`:
+- [x] Create `internal/scheduler/scheduler.go`:
   - `NewScheduler(store, agent) *Scheduler`
   - `Start(ctx)` — background loop checking every 30s for due tasks
   - `CreateTask(ctx, task) error`
   - `CancelTask(ctx, id) error`
   - `GetTasks(ctx, status) ([]Task, error)`
-- [ ] Create `internal/scheduler/tasks.go`:
+- [x] Create `internal/scheduler/tasks.go`:
   - Task CRUD operations on the `tasks` table
   - Cron expression parsing (using `robfig/cron`)
   - Next occurrence calculation for recurring tasks
-- [ ] Create `internal/scheduler/scheduler_test.go`:
+- [x] Create `internal/scheduler/scheduler_test.go`:
   - Test task creation, cancellation, firing
   - Test cron parsing and next-occurrence calculation
   - Test scheduler loop with mock store
-- [ ] Integrate scheduler into agent (agent can call `create_reminder`, `create_schedule`)
-- [ ] Add task awareness to system prompt (upcoming tasks summary)
+- [x] Integrate scheduler into agent (agent can call `create_reminder`, `create_schedule`)
+- [x] Add task awareness to system prompt (upcoming tasks summary)
 
 **Acceptance criteria:**
-- All tests pass
-- Tasks fire at the correct time
-- Recurring tasks work correctly
-- Agent can create and manage tasks via conversation
+- [x] All tests pass
+- [x] Tasks fire at the correct time
+- [x] Recurring tasks work correctly
+- [x] Agent can create and manage tasks via conversation
 
 **Notes for next person:**
+- 13 tests, 90.4% coverage on `internal/scheduler/`.
+- Added `Task` type to `memory/types.go` and task CRUD in `memory/tasks.go` (SaveTask, GetTask, GetTasks, GetDueTasks, UpdateTaskStatus, CancelTask).
+- Added `robfig/cron/v3` dependency for cron expression parsing.
+- `Scheduler` interface added to `agent/agent.go` with `CreateTask`, `CreateRecurringTask`, `CancelTask`, `GetTasks`, `GetUpcomingTasks`.
+- `NewAgent` now takes a 6th parameter (`Scheduler`). All existing tests updated.
+- `BuildPrompt` now includes an `UpcomingTasks` section in the system prompt when tasks exist.
+- `Scheduler.FireDueTasks()` is exported for direct testing; the background loop calls it on a 30s ticker.
+- `NewSchedulerWithInterval` is available for testing with shorter intervals.
+- Mocks regenerated for both `agent` and `scheduler` packages.
+- The `tasks` table was already created in migration `000001_initial.up.sql` — no new migration needed.
 
 ---
 
@@ -659,7 +669,7 @@ Every push runs:
 | 4. Agent Core Loop | [x] | 2026-08-01 | 2026-08-01 | 16 tests, 93.1% coverage. Store/Embedder interfaces for testability. Full pipeline: embed → retrieve → build prompt → call LLM → store response. |
 | 5. Persona System | [x] | 2026-08-01 | 2026-08-01 | 36 tests total (9 persona + 27 agent), 93% persona coverage, 96.6% agent coverage. Persona files with YAML frontmatter parse correctly. Model overrides resolved. Persona switching via "switch to <name>" in conversation. |
 | 6. Consolidation Engine | [x] | 2026-08-01 | 2026-08-01 | 47 tests, 86.4% coverage. Two-phase consolidation: quick (summarize→episode→embed) after 5min inactivity, deep (extract facts/entities/relationships, deduplicate) after 30min. Background goroutine with 30s ticker. SignalActivity() called by HandleMessage. Store interface expanded with 12 new methods. |
-| 7. Scheduler & Tasks | [ ] | — | — | |
+| 7. Scheduler & Tasks | [x] | 2026-08-01 | 2026-08-01 | 13 tests, 90.4% coverage. Task type + CRUD in memory/tasks.go. Scheduler package with cron support, background loop, task awareness in prompt. robfig/cron/v3 dependency added. NewAgent takes 6th param (Scheduler). All existing tests updated. |
 | 8. GUI — Chat & Core UI | [ ] | — | — | |
 | 9. GUI — Memory Explorer | [ ] | — | — | |
 | 10. GUI — Tasks, Personas, Activity, Settings | [ ] | — | — | |

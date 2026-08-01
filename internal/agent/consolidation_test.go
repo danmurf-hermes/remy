@@ -152,11 +152,12 @@ func TestAgent_QuickConsolidation(t *testing.T) {
 			provider := mock_llm.NewMockProvider(ctrl)
 			embedder := mock_agent.NewMockEmbedder(ctrl)
 			personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 			tt.mock(store, provider, embedder)
 
 			cfg := agent.DefaultConfig()
-			a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+			a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 			err := a.QuickConsolidation(context.Background(), tt.messages)
 			if tt.wantErr {
@@ -457,11 +458,12 @@ func TestAgent_DeepConsolidation(t *testing.T) {
 			provider := mock_llm.NewMockProvider(ctrl)
 			embedder := mock_agent.NewMockEmbedder(ctrl)
 			personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 			tt.mock(store, provider, embedder)
 
 			cfg := agent.DefaultConfig()
-			a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+			a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 			err := a.DeepConsolidation(context.Background())
 			if tt.wantErr {
@@ -485,12 +487,13 @@ func TestAgent_ScheduleConsolidation(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
 	cfg.QuickConsolidationDelayMs = 1
 	cfg.DeepConsolidationDelayMs = 2
 
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	store.EXPECT().GetMessages(gomock.Any(), 10, 0).Return(nil, nil).AnyTimes()
 
@@ -510,9 +513,10 @@ func TestAgent_SignalActivity(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	a.SignalActivity()
 }
@@ -525,6 +529,7 @@ func TestAgent_Consolidation_MessageIDsJSON(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	msg1ID := uuid.NewString()
 	msg2ID := uuid.NewString()
@@ -555,7 +560,7 @@ func TestAgent_Consolidation_MessageIDsJSON(t *testing.T) {
 	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	err := a.QuickConsolidation(context.Background(), []memory.Message{
 		{ID: msg1ID, Role: "user", Content: "Hello", Timestamp: 1000},
@@ -574,6 +579,7 @@ func TestAgent_Consolidation_ImportanceCalculation(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 		ID: "mock-id", Object: "chat.completion",
@@ -591,7 +597,7 @@ func TestAgent_Consolidation_ImportanceCalculation(t *testing.T) {
 	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	err := a.QuickConsolidation(context.Background(), []memory.Message{
 		{ID: uuid.NewString(), Role: "user", Content: "Hi", Timestamp: 1000},
@@ -609,6 +615,7 @@ func TestAgent_Consolidation_EmptyFactExtraction(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	store.EXPECT().GetEpisodes(gomock.Any(), 20, 0).Return([]memory.Episode{
 		{ID: uuid.NewString(), Summary: "Casual chat about weather.", Importance: 0.3},
@@ -633,7 +640,7 @@ func TestAgent_Consolidation_EmptyFactExtraction(t *testing.T) {
 	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	err := a.DeepConsolidation(context.Background())
 	if err != nil {
@@ -649,6 +656,7 @@ func TestAgent_Consolidation_ConfidenceCap(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	existingFactID := uuid.NewString()
 	store.EXPECT().GetEpisodes(gomock.Any(), 20, 0).Return([]memory.Episode{
@@ -682,7 +690,7 @@ func TestAgent_Consolidation_ConfidenceCap(t *testing.T) {
 	store.EXPECT().LogActivity(gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	err := a.DeepConsolidation(context.Background())
 	if err != nil {
@@ -698,6 +706,7 @@ func TestAgent_Consolidation_HandleMessageSignalsActivity(t *testing.T) {
 	provider := mock_llm.NewMockProvider(ctrl)
 	embedder := mock_agent.NewMockEmbedder(ctrl)
 	personaLoader := mock_agent.NewMockPersonaLoader(ctrl)
+			scheduler := mock_agent.NewMockScheduler(ctrl)
 
 	store.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Do(func(_ context.Context, msg *memory.Message) {
 		if msg.ID == "" {
@@ -711,6 +720,7 @@ func TestAgent_Consolidation_HandleMessageSignalsActivity(t *testing.T) {
 	store.EXPECT().SearchFacts(gomock.Any(), gomock.Any(), 5).Return(nil, nil)
 	store.EXPECT().GetScratchpad(gomock.Any()).Return("", nil)
 	store.EXPECT().GetMessages(gomock.Any(), 20, 0).Return(nil, nil)
+	scheduler.EXPECT().GetUpcomingTasks(gomock.Any()).Return("", nil)
 	provider.EXPECT().Chat(gomock.Any(), gomock.Any()).Return(&llm.ChatResponse{
 		ID: "mock-id", Object: "chat.completion",
 		Choices: []llm.Choice{{Index: 0, Message: llm.Message{Role: "assistant", Content: "Hello!"}, FinishReason: "stop"}},
@@ -724,7 +734,7 @@ func TestAgent_Consolidation_HandleMessageSignalsActivity(t *testing.T) {
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	cfg := agent.DefaultConfig()
-	a := agent.NewAgent(store, provider, embedder, personaLoader, &cfg)
+	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 
 	_, err := a.HandleMessage(context.Background(), "Hello")
 	if err != nil {

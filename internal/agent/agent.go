@@ -3,7 +3,7 @@
 // from memory, builds prompts, calls the LLM, and stores responses.
 package agent
 
-//go:generate go run go.uber.org/mock/mockgen -destination=mock_agent/mock_agent.go -package=mock_agent . Store,Embedder,PersonaLoader
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_agent/mock_agent.go -package=mock_agent . Store,Embedder,PersonaLoader,Scheduler
 
 import (
 	"context"
@@ -44,6 +44,12 @@ type Store interface {
 	SaveRelationship(ctx context.Context, rel *memory.Relationship) error
 	GetEntities(ctx context.Context) ([]memory.Entity, error)
 	GetRelationships(ctx context.Context) ([]memory.Relationship, error)
+	SaveTask(ctx context.Context, task *memory.Task) error
+	GetTask(ctx context.Context, id string) (*memory.Task, error)
+	GetTasks(ctx context.Context, status string) ([]memory.Task, error)
+	GetDueTasks(ctx context.Context, now int64) ([]memory.Task, error)
+	UpdateTaskStatus(ctx context.Context, id, status string, firedAt int64) error
+	CancelTask(ctx context.Context, id string) error
 }
 
 // Embedder defines the interface for generating vector embeddings.
@@ -56,6 +62,16 @@ type Embedder interface {
 type PersonaLoader interface {
 	LoadPersona(path string) (*persona.Persona, error)
 	ListPersonas(dir string, activeName string) ([]persona.Summary, error)
+}
+
+// Scheduler defines the interface for task scheduling, making it easy to
+// mock in tests.
+type Scheduler interface {
+	CreateTask(ctx context.Context, taskType, action string, triggerAt int64) (*memory.Task, error)
+	CreateRecurringTask(ctx context.Context, taskType, action, cronExpr string) (*memory.Task, error)
+	CancelTask(ctx context.Context, id string) error
+	GetTasks(ctx context.Context, status string) ([]memory.Task, error)
+	GetUpcomingTasks(ctx context.Context) (string, error)
 }
 
 // Config holds configuration for the agent's behavior.
@@ -91,6 +107,7 @@ type Agent struct {
 	provider      llm.Provider
 	embedder      Embedder
 	personaLoader PersonaLoader
+	scheduler     Scheduler
 	cfg           *Config
 	activePersona *persona.Persona
 
@@ -106,13 +123,14 @@ type consolidationSignal struct {
 }
 
 // NewAgent creates a new Agent with the given store, LLM provider,
-// embedder, persona loader, and configuration.
-func NewAgent(store Store, provider llm.Provider, embedder Embedder, personaLoader PersonaLoader, cfg *Config) *Agent {
+// embedder, persona loader, scheduler, and configuration.
+func NewAgent(store Store, provider llm.Provider, embedder Embedder, personaLoader PersonaLoader, scheduler Scheduler, cfg *Config) *Agent {
 	a := &Agent{
 		store:           store,
 		provider:        provider,
 		embedder:        embedder,
 		personaLoader:   personaLoader,
+		scheduler:       scheduler,
 		cfg:             cfg,
 		consolidationCh: make(chan consolidationSignal, 1),
 		stopCh:          make(chan struct{}),
@@ -235,6 +253,9 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 		}
 	}
 
+	// Get upcoming tasks for prompt context
+	upcomingTasks, _ := a.scheduler.GetUpcomingTasks(ctx)
+
 	prompt := BuildPrompt(&PromptInput{
 		Scratchpad:     scratchpad,
 		Episodes:       episodes,
@@ -242,6 +263,7 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 		RecentMessages: recentMessages,
 		UserMessage:    userMsg,
 		Persona:        a.activePersona,
+		UpcomingTasks:  upcomingTasks,
 	})
 
 	llmResp, err := a.provider.Chat(ctx, llm.ChatRequest{
