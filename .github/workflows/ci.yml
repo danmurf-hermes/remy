@@ -37,7 +37,7 @@ jobs:
           version: v2.12
 
       - name: Go test
-        run: go test ./internal/... -cover
+        run: go test ./internal/... -cover -coverprofile=coverage.out
 
       - name: Frontend lint (ESLint)
         run: npx eslint --ext .js,.svelte src/
