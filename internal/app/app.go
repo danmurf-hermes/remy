@@ -169,7 +169,7 @@ func (a *App) GetConversations() ([]ConversationDTO, error) {
 		if len(msgs) == 0 {
 			continue
 		}
-		lastMsg := msgs[len(msgs)-1]
+		lastMsg := msgs[0]
 		preview := lastMsg.Content
 		if len(preview) > 100 {
 			preview = preview[:100] + "..."
