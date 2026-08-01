@@ -1,0 +1,82 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - gocritic
+    - gosec
+    - misspell
+    - prealloc
+    - revive
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+    revive:
+      severity: warning
+      rules:
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: errorf
+        - name: error-strings
+        - name: error-naming
+        - name: range
+        - name: receiver-naming
+        - name: indent-error-flow
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+          severity: error
+        - name: get-return
+        - name: time-naming
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: blank-imports
+        - name: redefines-builtin-id
+        - name: confusing-naming
+        - name: confusing-results
+    misspell:
+      locale: US
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: true
+  exclusions:
+    paths:
+      - frontend/node_modules
+    rules:
+      - linters:
+          - gosec
+        text: "G115"
+      - linters:
+          - gosec
+        text: "G304"
+      - linters:
+          - gosec
+        text: "G101"
+      - linters:
+          - revive
+        text: "exported"
+      - linters:
+          - revive
+        text: "package-comments"
+      - linters:
+          - revive
+        text: "blank-imports"
+
+formatters:
+  enable:
+    - gofmt

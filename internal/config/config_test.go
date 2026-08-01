@@ -61,7 +61,7 @@ func TestLoadConfig_ValidFile(t *testing.T) {
 			}
 		}
 	}`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 
@@ -81,7 +81,7 @@ func TestLoadConfig_InvalidJSON(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
 	content := `{invalid json}`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 

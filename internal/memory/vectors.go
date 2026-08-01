@@ -59,7 +59,7 @@ func (e *Embedder) GenerateEmbedding(ctx context.Context, text string) ([]float3
 	return embedding, nil
 }
 
-func (e *Embedder) doRequest(ctx context.Context, req any, resp any) error {
+func (e *Embedder) doRequest(ctx context.Context, req, resp any) error {
 	var buf bytes.Buffer
 	if err := writeJSON(&buf, req); err != nil {
 		return err
@@ -75,7 +75,7 @@ func (e *Embedder) doRequest(ctx context.Context, req any, resp any) error {
 	if err != nil {
 		return fmt.Errorf("sending request: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	if httpResp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %d", httpResp.StatusCode)

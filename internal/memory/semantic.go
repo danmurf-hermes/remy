@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func (s *Store) SaveFact(ctx context.Context, fact Fact) error {
+func (s *Store) SaveFact(ctx context.Context, fact *Fact) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,8 +53,8 @@ func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error)
 	query, args, err := sb.Select("id", "fact", "category", "confidence", "source", "created_at", "updated_at").
 		From("facts").
 		OrderBy("updated_at DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
+		Limit(uint64(limit)).   //nolint:gosec // limit from user input
+		Offset(uint64(offset)). //nolint:gosec // offset from user input
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("building select: %w", err)
@@ -64,7 +64,7 @@ func (s *Store) GetFacts(ctx context.Context, limit, offset int) ([]Fact, error)
 	if err != nil {
 		return nil, fmt.Errorf("querying facts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -94,7 +94,7 @@ func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact
 	if err != nil {
 		return nil, fmt.Errorf("querying facts by category: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -107,7 +107,7 @@ func (s *Store) GetFactsByCategory(ctx context.Context, category string) ([]Fact
 	return facts, rows.Err()
 }
 
-func (s *Store) UpdateFact(ctx context.Context, fact Fact) error {
+func (s *Store) UpdateFact(ctx context.Context, fact *Fact) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -164,7 +164,7 @@ func (s *Store) SearchFacts(ctx context.Context, embedding []byte, limit int) ([
 	if err != nil {
 		return nil, fmt.Errorf("searching facts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var facts []Fact
 	for rows.Next() {
@@ -232,7 +232,7 @@ func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying entities: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entities []Entity
 	for rows.Next() {
@@ -245,7 +245,7 @@ func (s *Store) GetEntities(ctx context.Context) ([]Entity, error) {
 	return entities, rows.Err()
 }
 
-func (s *Store) SaveRelationship(ctx context.Context, rel Relationship) error {
+func (s *Store) SaveRelationship(ctx context.Context, rel *Relationship) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -279,7 +279,7 @@ func (s *Store) GetRelationships(ctx context.Context) ([]Relationship, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying relationships: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var relationships []Relationship
 	for rows.Next() {

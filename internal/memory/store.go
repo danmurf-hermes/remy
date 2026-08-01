@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
+	vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/mattn/go-sqlite3"
-	vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
+	_ "github.com/mattn/go-sqlite3" // SQLite driver registration
 )
 
 var sb = sq.StatementBuilder.PlaceholderFormat(sq.Question)
@@ -33,13 +33,13 @@ func NewStore(dbPath string) (*Store, error) {
 	}
 
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
 
 	s := &Store{db: db}
 	if err := s.migrate(dbPath); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("running migrations: %w", err)
 	}
 
@@ -59,13 +59,13 @@ func (s *Store) migrate(dbPath string) error {
 	if err != nil {
 		return fmt.Errorf("creating migration source: %w", err)
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	migrateDB, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
 	if err != nil {
 		return fmt.Errorf("opening migration database: %w", err)
 	}
-	defer migrateDB.Close()
+	defer func() { _ = migrateDB.Close() }()
 
 	driver, err := sqlite3.WithInstance(migrateDB, &sqlite3.Config{})
 	if err != nil {

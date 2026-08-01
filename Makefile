@@ -1,4 +1,4 @@
-.PHONY: build dev test lint clean
+.PHONY: build dev test lint lint-go lint-frontend fmt clean pre-commit
 
 BINARY_NAME=remy
 BUILD_DIR=build
@@ -15,8 +15,20 @@ test:
 	go test ./internal/... -cover
 	cd frontend && npm test
 
-lint:
-	go vet ./...
+lint: lint-go lint-frontend
+
+lint-go:
+	golangci-lint run ./...
+
+lint-frontend:
+	cd frontend && npx eslint --ext .js,.svelte src/
+	cd frontend && npx prettier --check src/
+
+fmt:
+	gofmt -s -w .
+	cd frontend && npx prettier --write src/
+
+pre-commit: fmt lint test
 
 clean:
 	rm -rf $(BUILD_DIR)

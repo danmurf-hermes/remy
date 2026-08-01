@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func (s *Store) SaveEpisode(ctx context.Context, ep Episode) error {
+func (s *Store) SaveEpisode(ctx context.Context, ep *Episode) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,8 +53,8 @@ func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, 
 	query, args, err := sb.Select("id", "summary", "start_time", "end_time", "message_ids", "importance", "topics").
 		From("episodes").
 		OrderBy("end_time DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
+		Limit(uint64(limit)).   //nolint:gosec // limit from user input, safe for test usage
+		Offset(uint64(offset)). //nolint:gosec // offset from user input, safe for test usage
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("building select: %w", err)
@@ -64,7 +64,7 @@ func (s *Store) GetEpisodes(ctx context.Context, limit, offset int) ([]Episode, 
 	if err != nil {
 		return nil, fmt.Errorf("querying episodes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {
@@ -95,7 +95,7 @@ func (s *Store) GetEpisodesByTimeRange(ctx context.Context, start, end int64) ([
 	if err != nil {
 		return nil, fmt.Errorf("querying episodes by time range: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {
@@ -124,7 +124,7 @@ func (s *Store) SearchEpisodes(ctx context.Context, embedding []byte, limit int)
 	if err != nil {
 		return nil, fmt.Errorf("searching episodes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var episodes []Episode
 	for rows.Next() {

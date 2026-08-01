@@ -16,21 +16,31 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.26'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Go vet
-        run: go vet ./...
+      - name: Lint (golangci-lint includes govet, gofmt, and all other linters)
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
 
       - name: Go test
         run: go test ./internal/... -cover
 
       - name: Frontend dependencies
         run: npm ci
+        working-directory: frontend
+
+      - name: Frontend lint (ESLint)
+        run: npx eslint --ext .js,.svelte src/
+        working-directory: frontend
+
+      - name: Frontend format check (Prettier)
+        run: npx prettier --check src/
         working-directory: frontend
 
       - name: Frontend test
