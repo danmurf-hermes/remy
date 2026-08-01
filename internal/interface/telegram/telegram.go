@@ -147,13 +147,13 @@ func (t *Interface) pollLoop(ctx context.Context) {
 			if update.Message == nil {
 				continue
 			}
-			t.handleUpdate(ctx, update)
+			t.handleUpdate(ctx, &update)
 		}
 	}
 }
 
 // handleUpdate processes a single Telegram update containing a message.
-func (t *Interface) handleUpdate(ctx context.Context, update tgbotapi.Update) {
+func (t *Interface) handleUpdate(ctx context.Context, update *tgbotapi.Update) {
 	msg := update.Message
 	if msg == nil {
 		return
@@ -205,7 +205,7 @@ func (t *Interface) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 }
 
 // handleCommand processes Telegram bot commands.
-func (t *Interface) handleCommand(ctx context.Context, chatID int64, userID int64, command, args string) {
+func (t *Interface) handleCommand(ctx context.Context, chatID, userID int64, command, args string) {
 	switch command {
 	case "start":
 		t.sendWithRetry(chatID, "Hello! I'm Remy, your personal AI assistant. Send me a message and I'll respond.")

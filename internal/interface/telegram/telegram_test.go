@@ -423,7 +423,7 @@ func TestHandleUpdate_AgentError(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	select {
 	case sent := <-sentCh:
@@ -456,7 +456,7 @@ func TestHandleUpdate_EmptyMessage(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	if agent.CallCount() > 0 {
 		t.Error("agent should not be called for empty message")
@@ -489,7 +489,7 @@ func TestHandleUpdate_UnauthorizedUser(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	if agent.CallCount() > 0 {
 		t.Error("agent should not be called for unauthorized user")
@@ -533,7 +533,7 @@ func TestHandleUpdate_Command(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	// Commands should not go through the agent
 	if agent.CallCount() > 0 {
@@ -582,7 +582,7 @@ func TestHandleUpdate_NormalMessage(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	if agent.CallCount() != 1 {
 		t.Errorf("expected 1 agent call, got %d", agent.CallCount())
@@ -617,7 +617,7 @@ func TestHandleUpdate_NilMessage(t *testing.T) {
 		Message:  nil,
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	if agent.CallCount() > 0 {
 		t.Error("agent should not be called for nil message")
@@ -630,7 +630,7 @@ func TestHandleUpdate_NilResponse(t *testing.T) {
 
 	agent := &mockAgentService{
 		handleFunc: func(ctx context.Context, userMsg string) (*memory.Message, error) {
-			return nil, nil
+			return &memory.Message{ID: "nil-test", Role: "assistant", Content: ""}, nil
 		},
 	}
 	store := &mockStore{}
@@ -652,12 +652,12 @@ func TestHandleUpdate_NilResponse(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
-	// Nil response should not send anything
+	// Empty response should not send anything
 	select {
 	case <-sentCh:
-		t.Error("should not send message for nil response")
+		t.Error("should not send message for empty response")
 	case <-time.After(500 * time.Millisecond):
 		// Expected - no message sent
 	}
@@ -695,7 +695,7 @@ func TestHandleUpdate_EmptyResponse(t *testing.T) {
 		},
 	}
 
-	tg.handleUpdate(context.Background(), update)
+	tg.handleUpdate(context.Background(), &update)
 
 	// Empty response should not send anything
 	select {
