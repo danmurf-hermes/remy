@@ -334,10 +334,10 @@ type ActivityEntryDTO struct {
 // ConfigDTO mirrors the config.Config struct for frontend consumption.
 type ConfigDTO struct {
 	Providers       map[string]ProviderConfigDTO `json:"providers"`
-	DefaultProvider string                        `json:"default_provider"`
-	Memory          MemoryConfigDTO               `json:"memory"`
-	Persona         PersonaConfigDTO              `json:"persona"`
-	Interfaces      InterfacesConfigDTO           `json:"interfaces"`
+	DefaultProvider string                       `json:"default_provider"`
+	Memory          MemoryConfigDTO              `json:"memory"`
+	Persona         PersonaConfigDTO             `json:"persona"`
+	Interfaces      InterfacesConfigDTO          `json:"interfaces"`
 }
 
 // ProviderConfigDTO is the DTO for a provider configuration.
@@ -685,7 +685,7 @@ func (a *App) GetTasks(status string) ([]TaskDTO, error) {
 }
 
 // CreateTask creates a new task (reminder or scheduled_message).
-func (a *App) CreateTask(taskType, triggerAt, cronExpr, action, context string) (*TaskDTO, error) {
+func (a *App) CreateTask(taskType, triggerAt, cronExpr, action, taskCtx string) (*TaskDTO, error) {
 	if a.ctx == nil {
 		return nil, fmt.Errorf("app not started")
 	}
@@ -705,7 +705,7 @@ func (a *App) CreateTask(taskType, triggerAt, cronExpr, action, context string) 
 		TriggerAt: triggerAtMs,
 		CronExpr:  cronExpr,
 		Action:    action,
-		Context:   context,
+		Context:   taskCtx,
 		CreatedAt: now(),
 	}
 
@@ -768,12 +768,12 @@ func (a *App) GetConfig() (*ConfigDTO, error) {
 }
 
 // UpdateConfig saves a new configuration to disk and updates the in-memory config.
-func (a *App) UpdateConfig(cfg ConfigDTO) error {
+func (a *App) UpdateConfig(cfg *ConfigDTO) error {
 	if a.ctx == nil {
 		return fmt.Errorf("app not started")
 	}
 
-	updated := dtoToConfig(&cfg)
+	updated := dtoToConfig(cfg)
 	if err := config.SaveConfig(a.cfgPath, updated); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
