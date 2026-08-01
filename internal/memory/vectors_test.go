@@ -16,12 +16,10 @@ func TestSerializeDeserializeVector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SerializeVector: %v", err)
 	}
-
 	got, err := DeserializeVector(data)
 	if err != nil {
 		t.Fatalf("DeserializeVector: %v", err)
 	}
-
 	if len(got) != len(original) {
 		t.Fatalf("length = %d, want %d", len(got), len(original))
 	}
@@ -55,95 +53,104 @@ func TestNewEmbedder(t *testing.T) {
 	}
 }
 
-func TestGenerateEmbedding_Success(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("method = %s, want POST", r.Method)
-		}
-		if r.URL.Path != "/embeddings" {
-			t.Errorf("path = %s, want /embeddings", r.URL.Path)
-		}
-
-		var req embeddingRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			t.Fatalf("decoding request: %v", err)
-		}
-		if req.Model != "nomic-embed-text" {
-			t.Errorf("model = %q, want %q", req.Model, "nomic-embed-text")
-		}
-		if len(req.Input) != 1 || req.Input[0] != "hello world" {
-			t.Errorf("input = %v, want [hello world]", req.Input)
-		}
-
-		resp := embeddingResponse{
-			Data: []struct {
-				Embedding []float64 `json:"embedding"`
-			}{
-				{Embedding: []float64{0.1, 0.2, 0.3, 0.4, 0.5}},
+func TestGenerateEmbedding(t *testing.T) {
+	tests := []struct {
+		name    string
+		handler func(w http.ResponseWriter, r *http.Request)
+		text    string
+		wantErr bool
+	}{
+		{
+			name: "success",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					t.Errorf("method = %s, want POST", r.Method)
+				}
+				if r.URL.Path != "/embeddings" {
+					t.Errorf("path = %s, want /embeddings", r.URL.Path)
+				}
+				var req embeddingRequest
+				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+					t.Fatalf("decoding request: %v", err)
+				}
+				if req.Model != "nomic-embed-text" {
+					t.Errorf("model = %q, want %q", req.Model, "nomic-embed-text")
+				}
+				if len(req.Input) != 1 || req.Input[0] != "hello world" {
+					t.Errorf("input = %v, want [hello world]", req.Input)
+				}
+				_ = json.NewEncoder(w).Encode(embeddingResponse{
+					Data: []struct {
+						Embedding []float64 `json:"embedding"`
+					}{
+						{Embedding: []float64{0.1, 0.2, 0.3, 0.4, 0.5}},
+					},
+				})
 			},
-		}
-		_ = json.NewEncoder(w).Encode(resp)
-	}))
-	defer server.Close()
-
-	e := NewEmbedder(server.URL, "nomic-embed-text")
-	embedding, err := e.GenerateEmbedding(context.Background(), "hello world")
-	if err != nil {
-		t.Fatalf("GenerateEmbedding: %v", err)
+			text: "hello world",
+		},
+		{
+			name: "server error",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			text:    "test",
+			wantErr: true,
+		},
+		{
+			name: "empty response",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				_ = json.NewEncoder(w).Encode(embeddingResponse{Data: []struct {
+					Embedding []float64 `json:"embedding"`
+				}{}})
+			},
+			text:    "test",
+			wantErr: true,
+		},
+		{
+			name: "timeout",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				<-r.Context().Done()
+			},
+			text:    "test",
+			wantErr: true,
+		},
 	}
 
-	expected := []float32{0.1, 0.2, 0.3, 0.4, 0.5}
-	if len(embedding) != len(expected) {
-		t.Fatalf("length = %d, want %d", len(embedding), len(expected))
-	}
-	for i := range expected {
-		if embedding[i] != expected[i] {
-			t.Errorf("element %d = %f, want %f", i, embedding[i], expected[i])
-		}
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(tt.handler))
+			defer server.Close()
 
-func TestGenerateEmbedding_ServerError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
+			e := NewEmbedder(server.URL, "nomic-embed-text")
 
-	e := NewEmbedder(server.URL, "nomic-embed-text")
-	_, err := e.GenerateEmbedding(context.Background(), "test")
-	if err == nil {
-		t.Fatal("expected error for server error, got nil")
-	}
-}
+			ctx := context.Background()
+			if tt.name == "timeout" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(context.Background())
+				cancel()
+			}
 
-func TestGenerateEmbedding_EmptyResponse(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(embeddingResponse{Data: []struct {
-			Embedding []float64 `json:"embedding"`
-		}{}})
-	}))
-	defer server.Close()
-
-	e := NewEmbedder(server.URL, "nomic-embed-text")
-	_, err := e.GenerateEmbedding(context.Background(), "test")
-	if err == nil {
-		t.Fatal("expected error for empty response, got nil")
-	}
-}
-
-func TestGenerateEmbedding_Timeout(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// never respond
-		<-r.Context().Done()
-	}))
-	defer server.Close()
-
-	e := NewEmbedder(server.URL, "nomic-embed-text")
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := e.GenerateEmbedding(ctx, "test")
-	if err == nil {
-		t.Fatal("expected error for canceled context, got nil")
+			embedding, err := e.GenerateEmbedding(ctx, tt.text)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("GenerateEmbedding: %v", err)
+			}
+			expected := []float32{0.1, 0.2, 0.3, 0.4, 0.5}
+			if len(embedding) != len(expected) {
+				t.Fatalf("length = %d, want %d", len(embedding), len(expected))
+			}
+			for i := range expected {
+				if embedding[i] != expected[i] {
+					t.Errorf("element %d = %f, want %f", i, embedding[i], expected[i])
+				}
+			}
+		})
 	}
 }
 
@@ -196,6 +203,29 @@ func TestSaveEpisodeVector(t *testing.T) {
 
 	if err := s.SaveEpisodeVector(ctx, ep.ID, embedding); err != nil {
 		t.Fatalf("SaveEpisodeVector: %v", err)
+	}
+}
+
+func TestSaveFactVector(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	now := now()
+	fact := Fact{
+		ID: uuid.NewString(), Fact: "test fact",
+		Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
+	}
+	if err := s.SaveFact(ctx, &fact); err != nil {
+		t.Fatalf("SaveFact: %v", err)
+	}
+
+	embedding, err := SerializeVector(make768Vector())
+	if err != nil {
+		t.Fatalf("SerializeVector: %v", err)
+	}
+
+	if err := s.SaveFactVector(ctx, fact.ID, embedding); err != nil {
+		t.Fatalf("SaveFactVector: %v", err)
 	}
 }
 
@@ -263,28 +293,5 @@ func TestSearchFacts(t *testing.T) {
 	}
 	if results[0].Fact != fact.Fact {
 		t.Errorf("fact = %q, want %q", results[0].Fact, fact.Fact)
-	}
-}
-
-func TestSaveFactVector(t *testing.T) {
-	s := newTestStore(t)
-	ctx := context.Background()
-
-	now := now()
-	fact := Fact{
-		ID: uuid.NewString(), Fact: "test fact",
-		Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
-	}
-	if err := s.SaveFact(ctx, &fact); err != nil {
-		t.Fatalf("SaveFact: %v", err)
-	}
-
-	embedding, err := SerializeVector(make768Vector())
-	if err != nil {
-		t.Fatalf("SerializeVector: %v", err)
-	}
-
-	if err := s.SaveFactVector(ctx, fact.ID, embedding); err != nil {
-		t.Fatalf("SaveFactVector: %v", err)
 	}
 }

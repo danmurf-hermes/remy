@@ -22,25 +22,26 @@ func newTestStore(t *testing.T) *Store {
 	return s
 }
 
-func TestNewStore_CreatesDatabase(t *testing.T) {
-	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "memory.db")
-	s, err := NewStore(dbPath)
-	if err != nil {
-		t.Fatalf("NewStore: %v", err)
-	}
-	defer func() { _ = s.Close() }()
+func TestNewStore(t *testing.T) {
+	t.Run("creates database", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "memory.db")
+		s, err := NewStore(dbPath)
+		if err != nil {
+			t.Fatalf("NewStore: %v", err)
+		}
+		defer func() { _ = s.Close() }()
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			t.Fatal("database file was not created")
+		}
+	})
 
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		t.Fatal("database file was not created")
-	}
-}
-
-func TestNewStore_InvalidPath(t *testing.T) {
-	_, err := NewStore("/nonexistent/dir/memory.db")
-	if err == nil {
-		t.Fatal("expected error for invalid path, got nil")
-	}
+	t.Run("invalid path", func(t *testing.T) {
+		_, err := NewStore("/nonexistent/dir/memory.db")
+		if err == nil {
+			t.Fatal("expected error for invalid path, got nil")
+		}
+	})
 }
 
 func TestStore_Close(t *testing.T) {
@@ -48,7 +49,6 @@ func TestStore_Close(t *testing.T) {
 	if err := s.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
-	// closing again should be safe
 	_ = s.Close()
 }
 
@@ -64,24 +64,17 @@ func TestSaveAndGetMessage(t *testing.T) {
 	ctx := context.Background()
 
 	msg := Message{
-		ID:        uuid.NewString(),
-		UserID:    "user1",
-		Role:      "user",
-		Content:   "Hello, Remy!",
-		Timestamp: time.Now().UnixMilli(),
-		Interface: "gui",
-		SessionID: "session1",
+		ID: uuid.NewString(), UserID: "user1", Role: "user",
+		Content: "Hello, Remy!", Timestamp: time.Now().UnixMilli(),
+		Interface: "gui", SessionID: "session1",
 	}
-
 	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("SaveMessage: %v", err)
 	}
-
 	got, err := s.GetMessage(ctx, msg.ID)
 	if err != nil {
 		t.Fatalf("GetMessage: %v", err)
 	}
-
 	if got.Content != msg.Content {
 		t.Errorf("content = %q, want %q", got.Content, msg.Content)
 	}
@@ -107,12 +100,9 @@ func TestGetMessages(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		msg := Message{
-			ID:        uuid.NewString(),
-			UserID:    "user1",
-			Role:      "user",
-			Content:   "Message " + string(rune('0'+i)),
-			Timestamp: int64(1000 + i),
-			Interface: "gui",
+			ID: uuid.NewString(), UserID: "user1", Role: "user",
+			Content: "Message " + string(rune('0'+i)),
+			Timestamp: int64(1000 + i), Interface: "gui",
 		}
 		if err := s.SaveMessage(ctx, &msg); err != nil {
 			t.Fatalf("SaveMessage: %v", err)
@@ -142,28 +132,17 @@ func TestGetMessagesBySession(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		msg := Message{
-			ID:        uuid.NewString(),
-			UserID:    "user1",
-			Role:      "user",
-			Content:   "Session msg " + string(rune('0'+i)),
-			Timestamp: int64(1000 + i),
-			Interface: "gui",
-			SessionID: "session-a",
+			ID: uuid.NewString(), UserID: "user1", Role: "user",
+			Content: "Session msg " + string(rune('0'+i)),
+			Timestamp: int64(1000 + i), Interface: "gui", SessionID: "session-a",
 		}
 		if err := s.SaveMessage(ctx, &msg); err != nil {
 			t.Fatalf("SaveMessage: %v", err)
 		}
 	}
-
-	// message in different session
 	other := Message{
-		ID:        uuid.NewString(),
-		UserID:    "user1",
-		Role:      "user",
-		Content:   "Other session",
-		Timestamp: 2000,
-		Interface: "gui",
-		SessionID: "session-b",
+		ID: uuid.NewString(), UserID: "user1", Role: "user",
+		Content: "Other session", Timestamp: 2000, Interface: "gui", SessionID: "session-b",
 	}
 	if err := s.SaveMessage(ctx, &other); err != nil {
 		t.Fatalf("SaveMessage: %v", err)
@@ -183,29 +162,30 @@ func TestSaveAndGetEpisode(t *testing.T) {
 	ctx := context.Background()
 
 	ep := Episode{
-		ID:         uuid.NewString(),
-		Summary:    "User asked about Go vs Python",
-		StartTime:  1000,
-		EndTime:    2000,
-		MessageIDs: `["msg1","msg2"]`,
-		Importance: 0.8,
-		Topics:     `["programming","comparison"]`,
+		ID: uuid.NewString(), Summary: "User asked about Go vs Python",
+		StartTime: 1000, EndTime: 2000, MessageIDs: `["msg1","msg2"]`,
+		Importance: 0.8, Topics: `["programming","comparison"]`,
 	}
-
 	if err := s.SaveEpisode(ctx, &ep); err != nil {
 		t.Fatalf("SaveEpisode: %v", err)
 	}
-
 	got, err := s.GetEpisode(ctx, ep.ID)
 	if err != nil {
 		t.Fatalf("GetEpisode: %v", err)
 	}
-
 	if got.Summary != ep.Summary {
 		t.Errorf("summary = %q, want %q", got.Summary, ep.Summary)
 	}
 	if got.Importance != ep.Importance {
 		t.Errorf("importance = %f, want %f", got.Importance, ep.Importance)
+	}
+}
+
+func TestGetEpisode_NotFound(t *testing.T) {
+	s := newTestStore(t)
+	_, err := s.GetEpisode(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent episode, got nil")
 	}
 }
 
@@ -215,12 +195,9 @@ func TestGetEpisodes(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		ep := Episode{
-			ID:         uuid.NewString(),
-			Summary:    "Episode " + string(rune('0'+i)),
-			StartTime:  int64(1000 + i*100),
-			EndTime:    int64(2000 + i*100),
-			MessageIDs: "[]",
-			Importance: 0.5,
+			ID: uuid.NewString(), Summary: "Episode " + string(rune('0'+i)),
+			StartTime: int64(1000 + i*100), EndTime: int64(2000 + i*100),
+			MessageIDs: "[]", Importance: 0.5,
 		}
 		if err := s.SaveEpisode(ctx, &ep); err != nil {
 			t.Fatalf("SaveEpisode: %v", err)
@@ -240,14 +217,13 @@ func TestGetEpisodesByTimeRange(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	episodes := []Episode{
+	eps := []Episode{
 		{ID: uuid.NewString(), Summary: "early", StartTime: 100, EndTime: 200, MessageIDs: "[]", Importance: 0.5},
 		{ID: uuid.NewString(), Summary: "middle", StartTime: 300, EndTime: 400, MessageIDs: "[]", Importance: 0.5},
 		{ID: uuid.NewString(), Summary: "late", StartTime: 500, EndTime: 600, MessageIDs: "[]", Importance: 0.5},
 	}
-
-	for i := range episodes {
-		if err := s.SaveEpisode(ctx, &episodes[i]); err != nil {
+	for i := range eps {
+		if err := s.SaveEpisode(ctx, &eps[i]); err != nil {
 			t.Fatalf("SaveEpisode: %v", err)
 		}
 	}
@@ -270,29 +246,30 @@ func TestSaveAndGetFact(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 	fact := Fact{
-		ID:         uuid.NewString(),
-		Fact:       "User prefers async/await over callbacks",
-		Category:   "preference",
-		Confidence: 0.9,
-		Source:     "episode:abc",
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		ID: uuid.NewString(), Fact: "User prefers async/await over callbacks",
+		Category: "preference", Confidence: 0.9, Source: "episode:abc",
+		CreatedAt: now, UpdatedAt: now,
 	}
-
 	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
-
 	got, err := s.GetFact(ctx, fact.ID)
 	if err != nil {
 		t.Fatalf("GetFact: %v", err)
 	}
-
 	if got.Fact != fact.Fact {
 		t.Errorf("fact = %q, want %q", got.Fact, fact.Fact)
 	}
 	if got.Category != fact.Category {
 		t.Errorf("category = %q, want %q", got.Category, fact.Category)
+	}
+}
+
+func TestGetFact_NotFound(t *testing.T) {
+	s := newTestStore(t)
+	_, err := s.GetFact(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent fact, got nil")
 	}
 }
 
@@ -306,7 +283,6 @@ func TestGetFactsByCategory(t *testing.T) {
 		{ID: uuid.NewString(), Fact: "likes Python", Category: "preference", Confidence: 0.7, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.NewString(), Fact: "name is Dan", Category: "personal_info", Confidence: 0.9, CreatedAt: now, UpdatedAt: now},
 	}
-
 	for i := range facts {
 		if err := s.SaveFact(ctx, &facts[i]); err != nil {
 			t.Fatalf("SaveFact: %v", err)
@@ -328,14 +304,9 @@ func TestUpdateFact(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 	fact := Fact{
-		ID:         uuid.NewString(),
-		Fact:       "User likes Go",
-		Category:   "preference",
-		Confidence: 0.5,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		ID: uuid.NewString(), Fact: "User likes Go",
+		Category: "preference", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
-
 	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
@@ -343,7 +314,6 @@ func TestUpdateFact(t *testing.T) {
 	fact.Fact = "User really likes Go"
 	fact.Confidence = 0.9
 	fact.UpdatedAt = time.Now().UnixMilli()
-
 	if err := s.UpdateFact(ctx, &fact); err != nil {
 		t.Fatalf("UpdateFact: %v", err)
 	}
@@ -352,7 +322,6 @@ func TestUpdateFact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetFact: %v", err)
 	}
-
 	if got.Fact != "User really likes Go" {
 		t.Errorf("fact = %q, want %q", got.Fact, "User really likes Go")
 	}
@@ -370,18 +339,39 @@ func TestDeleteFact(t *testing.T) {
 		ID: uuid.NewString(), Fact: "to delete", Category: "test",
 		Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
 	}
-
 	if err := s.SaveFact(ctx, &fact); err != nil {
 		t.Fatalf("SaveFact: %v", err)
 	}
-
 	if err := s.DeleteFact(ctx, fact.ID); err != nil {
 		t.Fatalf("DeleteFact: %v", err)
 	}
-
 	_, err := s.GetFact(ctx, fact.ID)
 	if err == nil {
 		t.Fatal("expected error after delete, got nil")
+	}
+}
+
+func TestGetFacts(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	now := time.Now().UnixMilli()
+	for i := 0; i < 5; i++ {
+		f := Fact{
+			ID: uuid.NewString(), Fact: "fact " + string(rune('0'+i)),
+			Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
+		}
+		if err := s.SaveFact(ctx, &f); err != nil {
+			t.Fatalf("SaveFact: %v", err)
+		}
+	}
+
+	facts, err := s.GetFacts(ctx, 3, 0)
+	if err != nil {
+		t.Fatalf("GetFacts: %v", err)
+	}
+	if len(facts) != 3 {
+		t.Errorf("got %d facts, want 3", len(facts))
 	}
 }
 
@@ -390,27 +380,30 @@ func TestSaveAndGetEntity(t *testing.T) {
 	ctx := context.Background()
 
 	entity := Entity{
-		ID:          uuid.NewString(),
-		Name:        "Go",
-		Type:        "language",
+		ID: uuid.NewString(), Name: "Go", Type: "language",
 		Description: "A statically typed compiled programming language",
 		CreatedAt:   time.Now().UnixMilli(),
 	}
-
 	if err := s.SaveEntity(ctx, entity); err != nil {
 		t.Fatalf("SaveEntity: %v", err)
 	}
-
 	got, err := s.GetEntity(ctx, entity.ID)
 	if err != nil {
 		t.Fatalf("GetEntity: %v", err)
 	}
-
 	if got.Name != entity.Name {
 		t.Errorf("name = %q, want %q", got.Name, entity.Name)
 	}
 	if got.Type != entity.Type {
 		t.Errorf("type = %q, want %q", got.Type, entity.Type)
+	}
+}
+
+func TestGetEntity_NotFound(t *testing.T) {
+	s := newTestStore(t)
+	_, err := s.GetEntity(context.Background(), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent entity, got nil")
 	}
 }
 
@@ -422,7 +415,6 @@ func TestGetEntities(t *testing.T) {
 		{ID: uuid.NewString(), Name: "Go", Type: "language", CreatedAt: 1000},
 		{ID: uuid.NewString(), Name: "Python", Type: "language", CreatedAt: 2000},
 	}
-
 	for _, e := range entities {
 		if err := s.SaveEntity(ctx, e); err != nil {
 			t.Fatalf("SaveEntity: %v", err)
@@ -438,6 +430,17 @@ func TestGetEntities(t *testing.T) {
 	}
 }
 
+func TestGetEntities_Empty(t *testing.T) {
+	s := newTestStore(t)
+	got, err := s.GetEntities(context.Background())
+	if err != nil {
+		t.Fatalf("GetEntities: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("got %d entities, want 0", len(got))
+	}
+}
+
 func TestSaveAndGetRelationship(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
@@ -445,7 +448,6 @@ func TestSaveAndGetRelationship(t *testing.T) {
 	now := time.Now().UnixMilli()
 	e1 := Entity{ID: uuid.NewString(), Name: "Dan", Type: "person", CreatedAt: now}
 	e2 := Entity{ID: uuid.NewString(), Name: "Go", Type: "language", CreatedAt: now}
-
 	if err := s.SaveEntity(ctx, e1); err != nil {
 		t.Fatalf("SaveEntity: %v", err)
 	}
@@ -454,14 +456,9 @@ func TestSaveAndGetRelationship(t *testing.T) {
 	}
 
 	rel := Relationship{
-		ID:           uuid.NewString(),
-		SourceEntity: e1.ID,
-		TargetEntity: e2.ID,
-		Relationship: "uses",
-		Confidence:   0.9,
-		CreatedAt:    now,
+		ID: uuid.NewString(), SourceEntity: e1.ID, TargetEntity: e2.ID,
+		Relationship: "uses", Confidence: 0.9, CreatedAt: now,
 	}
-
 	if err := s.SaveRelationship(ctx, &rel); err != nil {
 		t.Fatalf("SaveRelationship: %v", err)
 	}
@@ -475,6 +472,17 @@ func TestSaveAndGetRelationship(t *testing.T) {
 	}
 	if rels[0].Relationship != "uses" {
 		t.Errorf("relationship = %q, want %q", rels[0].Relationship, "uses")
+	}
+}
+
+func TestGetRelationships_Empty(t *testing.T) {
+	s := newTestStore(t)
+	rels, err := s.GetRelationships(context.Background())
+	if err != nil {
+		t.Fatalf("GetRelationships: %v", err)
+	}
+	if len(rels) != 0 {
+		t.Errorf("got %d relationships, want 0", len(rels))
 	}
 }
 
@@ -507,19 +515,27 @@ func TestScratchpad(t *testing.T) {
 	}
 }
 
+func TestScratchpad_InitIdempotent(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	if err := s.InitScratchpad(ctx); err != nil {
+		t.Fatalf("InitScratchpad: %v", err)
+	}
+	if err := s.InitScratchpad(ctx); err != nil {
+		t.Fatalf("InitScratchpad (second): %v", err)
+	}
+}
+
 func TestActivityLog(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
 	entry := ActivityEntry{
-		ID:        uuid.NewString(),
-		Timestamp: time.Now().UnixMilli(),
-		Type:      "message_received",
-		Details:   `{"content": "hello"}`,
-		MessageID: "msg1",
-		SessionID: "session1",
+		ID: uuid.NewString(), Timestamp: time.Now().UnixMilli(),
+		Type: "message_received", Details: `{"content": "hello"}`,
+		MessageID: "msg1", SessionID: "session1",
 	}
-
 	if err := s.LogActivity(ctx, &entry); err != nil {
 		t.Fatalf("LogActivity: %v", err)
 	}
@@ -546,7 +562,6 @@ func TestActivityLog_Filtered(t *testing.T) {
 		{ID: uuid.NewString(), Timestamp: now + 1, Type: "llm_request", Details: "{}"},
 		{ID: uuid.NewString(), Timestamp: now + 2, Type: "message_received", Details: "{}"},
 	}
-
 	for i := range entries {
 		if err := s.LogActivity(ctx, &entries[i]); err != nil {
 			t.Fatalf("LogActivity: %v", err)
@@ -562,30 +577,6 @@ func TestActivityLog_Filtered(t *testing.T) {
 	}
 }
 
-func TestGetFacts(t *testing.T) {
-	s := newTestStore(t)
-	ctx := context.Background()
-
-	now := time.Now().UnixMilli()
-	for i := 0; i < 5; i++ {
-		f := Fact{
-			ID: uuid.NewString(), Fact: "fact " + string(rune('0'+i)),
-			Category: "test", Confidence: 0.5, CreatedAt: now, UpdatedAt: now,
-		}
-		if err := s.SaveFact(ctx, &f); err != nil {
-			t.Fatalf("SaveFact: %v", err)
-		}
-	}
-
-	facts, err := s.GetFacts(ctx, 3, 0)
-	if err != nil {
-		t.Fatalf("GetFacts: %v", err)
-	}
-	if len(facts) != 3 {
-		t.Errorf("got %d facts, want 3", len(facts))
-	}
-}
-
 func TestDuplicateMessageID(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
@@ -594,11 +585,9 @@ func TestDuplicateMessageID(t *testing.T) {
 		ID: "dup-id", UserID: "u1", Role: "user",
 		Content: "first", Timestamp: 1000, Interface: "gui",
 	}
-
 	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("first SaveMessage: %v", err)
 	}
-
 	msg.Content = "second"
 	if err := s.SaveMessage(ctx, &msg); err == nil {
 		t.Fatal("expected error for duplicate ID, got nil")
@@ -613,16 +602,13 @@ func TestLargeContent(t *testing.T) {
 	for i := range large {
 		large[i] = 'a' + byte(i%26)
 	}
-
 	msg := Message{
 		ID: uuid.NewString(), UserID: "u1", Role: "user",
 		Content: string(large), Timestamp: 1000, Interface: "gui",
 	}
-
 	if err := s.SaveMessage(ctx, &msg); err != nil {
 		t.Fatalf("SaveMessage with large content: %v", err)
 	}
-
 	got, err := s.GetMessage(ctx, msg.ID)
 	if err != nil {
 		t.Fatalf("GetMessage: %v", err)

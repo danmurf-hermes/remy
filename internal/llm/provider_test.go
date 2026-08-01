@@ -6,107 +6,103 @@ import (
 	"github.com/yourname/remy/internal/config"
 )
 
-func TestNewProvider_Valid(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "http://localhost:11434/v1",
-		ChatModel:      "llama3.1:8b",
-		EmbeddingModel: "nomic-embed-text",
-	}
-	p, err := NewProvider(cfg)
-	if err != nil {
-		t.Fatalf("NewProvider: %v", err)
-	}
-	if p == nil {
-		t.Fatal("provider is nil")
-	}
-
-	client, ok := p.(*OllamaClient)
-	if !ok {
-		t.Fatalf("expected *OllamaClient, got %T", p)
-	}
-	if client.endpoint != cfg.Endpoint {
-		t.Errorf("endpoint = %q, want %q", client.endpoint, cfg.Endpoint)
-	}
-	if client.chatModel != cfg.ChatModel {
-		t.Errorf("chatModel = %q, want %q", client.chatModel, cfg.ChatModel)
-	}
-	if client.embeddingModel != cfg.EmbeddingModel {
-		t.Errorf("embeddingModel = %q, want %q", client.embeddingModel, cfg.EmbeddingModel)
-	}
-}
-
-func TestNewProvider_WithParameters(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "http://localhost:11434/v1",
-		ChatModel:      "llama3.1:8b",
-		EmbeddingModel: "nomic-embed-text",
-		Parameters: map[string]any{
-			"temperature": 0.9,
-			"max_tokens":  2048,
+func TestNewProvider(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     config.ProviderConfig
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			cfg: config.ProviderConfig{
+				Endpoint:       "http://localhost:11434/v1",
+				ChatModel:      "llama3.1:8b",
+				EmbeddingModel: "nomic-embed-text",
+			},
+		},
+		{
+			name: "with parameters",
+			cfg: config.ProviderConfig{
+				Endpoint:       "http://localhost:11434/v1",
+				ChatModel:      "llama3.1:8b",
+				EmbeddingModel: "nomic-embed-text",
+				Parameters:     map[string]any{"temperature": 0.9, "max_tokens": 2048},
+			},
+		},
+		{
+			name: "with API key",
+			cfg: config.ProviderConfig{
+				Endpoint:       "http://localhost:11434/v1",
+				APIKey:         "sk-test-123",
+				ChatModel:      "llama3.1:8b",
+				EmbeddingModel: "nomic-embed-text",
+			},
+		},
+		{
+			name: "missing endpoint",
+			cfg: config.ProviderConfig{
+				Endpoint:       "",
+				ChatModel:      "llama3.1:8b",
+				EmbeddingModel: "nomic-embed-text",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing chat model",
+			cfg: config.ProviderConfig{
+				Endpoint:       "http://localhost:11434/v1",
+				ChatModel:      "",
+				EmbeddingModel: "nomic-embed-text",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing embedding model",
+			cfg: config.ProviderConfig{
+				Endpoint:       "http://localhost:11434/v1",
+				ChatModel:      "llama3.1:8b",
+				EmbeddingModel: "",
+			},
+			wantErr: true,
 		},
 	}
-	p, err := NewProvider(cfg)
-	if err != nil {
-		t.Fatalf("NewProvider: %v", err)
-	}
-	client := p.(*OllamaClient)
-	if client.parameters["temperature"] != 0.9 {
-		t.Errorf("temperature = %v, want 0.9", client.parameters["temperature"])
-	}
-	if client.parameters["max_tokens"] != 2048 {
-		t.Errorf("max_tokens = %v (%T), want 2048 (int)", client.parameters["max_tokens"], client.parameters["max_tokens"])
-	}
-}
 
-func TestNewProvider_WithAPIKey(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "http://localhost:11434/v1",
-		APIKey:         "sk-test-123",
-		ChatModel:      "llama3.1:8b",
-		EmbeddingModel: "nomic-embed-text",
-	}
-	p, err := NewProvider(cfg)
-	if err != nil {
-		t.Fatalf("NewProvider: %v", err)
-	}
-	client := p.(*OllamaClient)
-	if client.apiKey != "sk-test-123" {
-		t.Errorf("apiKey = %q, want %q", client.apiKey, "sk-test-123")
-	}
-}
-
-func TestNewProvider_MissingEndpoint(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "",
-		ChatModel:      "llama3.1:8b",
-		EmbeddingModel: "nomic-embed-text",
-	}
-	_, err := NewProvider(cfg)
-	if err == nil {
-		t.Fatal("expected error for missing endpoint, got nil")
-	}
-}
-
-func TestNewProvider_MissingChatModel(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "http://localhost:11434/v1",
-		ChatModel:      "",
-		EmbeddingModel: "nomic-embed-text",
-	}
-	_, err := NewProvider(cfg)
-	if err == nil {
-		t.Fatal("expected error for missing chat model, got nil")
-	}
-}
-
-func TestNewProvider_MissingEmbeddingModel(t *testing.T) {
-	cfg := config.ProviderConfig{
-		Endpoint:       "http://localhost:11434/v1",
-		ChatModel:      "llama3.1:8b",
-		EmbeddingModel: "",
-	}
-	_, err := NewProvider(cfg)
-	if err == nil {
-		t.Fatal("expected error for missing embedding model, got nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := NewProvider(tt.cfg)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("NewProvider: %v", err)
+			}
+			if p == nil {
+				t.Fatal("provider is nil")
+			}
+			client, ok := p.(*OllamaClient)
+			if !ok {
+				t.Fatalf("expected *OllamaClient, got %T", p)
+			}
+			if client.endpoint != tt.cfg.Endpoint {
+				t.Errorf("endpoint = %q, want %q", client.endpoint, tt.cfg.Endpoint)
+			}
+			if client.chatModel != tt.cfg.ChatModel {
+				t.Errorf("chatModel = %q, want %q", client.chatModel, tt.cfg.ChatModel)
+			}
+			if client.embeddingModel != tt.cfg.EmbeddingModel {
+				t.Errorf("embeddingModel = %q, want %q", client.embeddingModel, tt.cfg.EmbeddingModel)
+			}
+			if tt.cfg.APIKey != "" && client.apiKey != tt.cfg.APIKey {
+				t.Errorf("apiKey = %q, want %q", client.apiKey, tt.cfg.APIKey)
+			}
+			if tt.cfg.Parameters != nil {
+				if client.parameters["temperature"] != tt.cfg.Parameters["temperature"] {
+					t.Errorf("temperature = %v, want %v", client.parameters["temperature"], tt.cfg.Parameters["temperature"])
+				}
+			}
+		})
 	}
 }
