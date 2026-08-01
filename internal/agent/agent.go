@@ -3,6 +3,8 @@
 // from memory, builds prompts, calls the LLM, and stores responses.
 package agent
 
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_agent/mock_agent.go -package=mock_agent . Store,Embedder
+
 import (
 	"context"
 	"fmt"

@@ -7,6 +7,8 @@ import (
 	"github.com/yourname/remy/internal/config"
 )
 
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_llm/mock_llm.go -package=mock_llm . Provider
+
 // Provider is the interface for LLM backends. Implementations must support
 // chat, streaming chat, and text embedding.
 type Provider interface {
