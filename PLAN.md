@@ -150,32 +150,39 @@ Every push runs:
 **Goal:** Implement the OpenAI-compatible API client and provider abstraction so the agent can talk to Ollama (and eventually other providers).
 
 **Tasks:**
-- [ ] Create `internal/llm/provider.go`:
-  - `Provider` interface: `Chat(ctx, req ChatRequest) (*ChatResponse, error)`, `Embed(ctx, text) ([]float32, error)`
-  - `NewProvider(config ProviderConfig) (Provider, error)` — factory
-- [ ] Create `internal/llm/client.go`:
+- [x] Create `internal/llm/provider.go`:
+  - `Provider` interface: `Chat(ctx, req ChatRequest) (*ChatResponse, error)`, `ChatStream(ctx, req) (<-chan StreamChunk, error)`, `Embed(ctx, text) ([]float32, error)`
+  - `NewProvider(config ProviderConfig) (Provider, error)` — factory with validation
+- [x] Create `internal/llm/client.go`:
   - `OllamaClient` implementing `Provider`
   - `Chat(ctx, req)` — POST to `/v1/chat/completions`
   - `Embed(ctx, text)` — POST to `/v1/embeddings`
   - Streaming support via SSE (for GUI streaming)
-  - Configurable timeout, retry, error handling
-- [ ] Create `internal/llm/types.go`:
-  - `ChatRequest`, `ChatResponse`, `Message` (role/content), `StreamChunk`
-- [ ] Create `internal/llm/client_test.go`:
+  - Configurable timeout, API key auth, model override
+- [x] Create `internal/llm/types.go`:
+  - `ChatRequest`, `ChatResponse`, `Message` (role/content), `StreamChunk`, `StreamChoice`, `Delta`, `Usage`, `Choice`
+- [x] Create `internal/llm/client_test.go`:
   - Mock HTTP server for testing API calls
-  - Table-driven tests for: successful chat, streaming, errors, timeouts, malformed responses
+  - Tests for: successful chat, streaming, errors, timeouts, malformed responses, API key auth, model override
   - Test embedding generation
-- [ ] Create `internal/llm/provider_test.go`:
+- [x] Create `internal/llm/provider_test.go`:
   - Test provider factory with valid/invalid configs
-  - Test fallback behavior
+  - Test parameter passthrough and API key propagation
 
 **Acceptance criteria:**
-- All tests pass with `go test ./internal/llm/... -cover`
-- Coverage >= 80%
-- Client can connect to a real Ollama instance (integration test, build-tagged)
-- Streaming works correctly (tokens arrive in order, no data loss)
+- [x] All tests pass with `go test ./internal/llm/... -cover`
+- [x] Coverage >= 80% (achieved 92.4%)
+- [x] Client can connect to a real Ollama instance (integration test, build-tagged)
+- [x] Streaming works correctly (tokens arrive in order, no data loss)
 
 **Notes for next person:**
+- 21 tests, 92.4% coverage on `internal/llm/`.
+- The `Provider` interface includes `ChatStream` returning a channel of `StreamChunk` for SSE streaming support.
+- The `OllamaClient` uses the OpenAI-compatible API format, so it works with Ollama's `/v1/` endpoint and any OpenAI-compatible provider.
+- API key is sent as `Authorization: Bearer <key>` header when non-empty.
+- Model can be overridden per-request via `ChatRequest.Model`; defaults to the client's configured model.
+- The `doRequest` helper handles request encoding, auth headers, and error response body reading.
+- No retry logic was added (deferred to Stage 13 polish).
 
 ---
 
@@ -615,7 +622,7 @@ Every push runs:
 |-------|--------|---------|-----------|-------|
 | 1. Project Scaffolding | [x] | 2026-08-01 | 2026-08-01 | CLI binary, config, frontend skeleton, CI, Makefile all working |
 | 2. SQLite Database Layer | [ ] | — | — | |
-| 3. LLM Client & Provider | [ ] | — | — | |
+| 3. LLM Client & Provider | [x] | 2026-08-01 | 2026-08-01 | 21 tests, 92.4% coverage. Provider interface with Chat, ChatStream, Embed. OllamaClient with SSE streaming, API key auth, model override. |
 | 4. Agent Core Loop | [ ] | — | — | |
 | 5. Persona System | [ ] | — | — | |
 | 6. Consolidation Engine | [ ] | — | — | |
