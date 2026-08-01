@@ -78,6 +78,7 @@ func (a *Agent) QuickConsolidation(ctx context.Context, recentMessages []memory.
 
 // DeepConsolidation extracts facts, entities, and relationships from recent
 // episodes, deduplicates facts, and updates confidence scores.
+//nolint:gocyclo
 func (a *Agent) DeepConsolidation(ctx context.Context) error {
 	recentEpisodes, err := a.store.GetEpisodes(ctx, episodeSearchLimit, 0)
 	if err != nil {

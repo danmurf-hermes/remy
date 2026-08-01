@@ -61,6 +61,7 @@ type handleMessageMock struct {
 	scheduler     *mock_agent.MockScheduler
 }
 
+//nolint:gocyclo
 func TestAgent_HandleMessage(t *testing.T) {
 	tests := []struct {
 		name       string

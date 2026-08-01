@@ -101,7 +101,7 @@ func TestNewApp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	cfg := config.DefaultConfig()
 	appInst, err := app.NewApp(cfg, store, &fakeAgent{})
@@ -118,7 +118,7 @@ func TestSendMessage_NotStarted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -136,7 +136,7 @@ func TestSendMessage_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -164,15 +164,15 @@ func TestSendMessage_AgentError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		handleMessageFn: func(ctx context.Context, userMsg string) (*memory.Message, error) {
 			return nil, errors.New("agent error")
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestSendMessageStream_NotStarted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -207,7 +207,7 @@ func TestSendMessageStream_EmitsEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	emitter := &recordingEmitter{}
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
@@ -253,9 +253,9 @@ func TestSendMessageStream_EmitsError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		handleMessageStreamFn: func(ctx context.Context, userMsg string) (<-chan agent.StreamChunk, error) {
 			ch := make(chan agent.StreamChunk, 1)
 			ch <- agent.StreamChunk{Error: "something went wrong"}
@@ -265,7 +265,7 @@ func TestSendMessageStream_EmitsError(t *testing.T) {
 	}
 
 	emitter := &recordingEmitter{}
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestGetHistory_NotStarted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -314,7 +314,7 @@ func TestGetHistory_Empty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -336,7 +336,7 @@ func TestGetHistory_WithMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Insert a message directly into the store
 	now := time.Now().UnixMilli()
@@ -373,7 +373,7 @@ func TestGetConversations_Empty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -395,7 +395,7 @@ func TestGetConversations_WithMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	now := time.Now().UnixMilli()
 	err = store.SaveMessage(context.Background(), &memory.Message{
@@ -434,7 +434,7 @@ func TestGetConversations_PreviewTruncation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	longContent := ""
 	for i := 0; i < 200; i++ {
@@ -472,7 +472,7 @@ func TestGetPersonas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -500,15 +500,15 @@ func TestGetPersonas_Error(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		listPersonasFn: func(ctx context.Context) ([]persona.Summary, error) {
 			return nil, errors.New("list error")
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -525,7 +525,7 @@ func TestSwitchPersona(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -544,7 +544,7 @@ func TestSwitchPersona_NotStarted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -562,7 +562,7 @@ func TestGetActivePersona_Default(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	appInst, err := app.NewApp(config.DefaultConfig(), store, &fakeAgent{})
 	if err != nil {
@@ -580,15 +580,15 @@ func TestGetActivePersona_Nil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		activePersonaFn: func() *persona.Persona {
 			return nil
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -606,15 +606,15 @@ func TestMessageToDTO_Nil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		handleMessageFn: func(ctx context.Context, userMsg string) (*memory.Message, error) {
 			return nil, nil //nolint:nilnil // intentional: test nil-handling path
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -634,17 +634,17 @@ func TestStartup_LoadsPersona(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	loaded := false
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		loadActivePersonaFn: func(ctx context.Context) error {
 			loaded = true
 			return nil
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}
@@ -660,15 +660,15 @@ func TestStartup_LoadPersonaError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
-	agent := &fakeAgent{
+	ag := &fakeAgent{
 		loadActivePersonaFn: func(ctx context.Context) error {
 			return errors.New("load error")
 		},
 	}
 
-	appInst, err := app.NewApp(config.DefaultConfig(), store, agent)
+	appInst, err := app.NewApp(config.DefaultConfig(), store, ag)
 	if err != nil {
 		t.Fatalf("NewApp returned error: %v", err)
 	}

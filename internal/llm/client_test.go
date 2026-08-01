@@ -28,6 +28,7 @@ func TestNewOllamaClient(t *testing.T) {
 	}
 }
 
+//nolint:gocyclo
 func TestChat(t *testing.T) {
 	tests := []struct {
 		name    string

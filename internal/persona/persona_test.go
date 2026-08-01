@@ -8,6 +8,7 @@ import (
 	"github.com/danmurf/remy/internal/persona"
 )
 
+//nolint:gocyclo
 func TestLoadPersona(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -307,6 +308,7 @@ body`,
 	}
 }
 
+//nolint:gocyclo
 func TestSavePersona(t *testing.T) {
 	tests := []struct {
 		name    string
