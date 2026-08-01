@@ -14,21 +14,21 @@ import (
 
 // mockStore implements the Store interface for testing.
 type mockStore struct {
-	mu               sync.RWMutex
-	messages         map[string]*memory.Message
-	episodes         []memory.Episode
-	facts            []memory.Fact
-	scratchpad       string
-	activity         []memory.ActivityEntry
-	messageVectors   map[string][]byte
-	saveMessageErr   error
-	getMessagesErr   error
-	searchEpisodesErr error
-	searchFactsErr   error
-	getScratchpadErr error
+	mu                  sync.RWMutex
+	messages            map[string]*memory.Message
+	episodes            []memory.Episode
+	facts               []memory.Fact
+	scratchpad          string
+	activity            []memory.ActivityEntry
+	messageVectors      map[string][]byte
+	saveMessageErr      error
+	getMessagesErr      error
+	searchEpisodesErr   error
+	searchFactsErr      error
+	getScratchpadErr    error
 	updateScratchpadErr error
-	logActivityErr   error
-	saveVectorErr    error
+	logActivityErr      error
+	saveVectorErr       error
 }
 
 func newMockStore() *mockStore {

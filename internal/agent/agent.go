@@ -1,3 +1,6 @@
+// Package agent implements the core orchestration loop for the Remy
+// personal assistant. It receives user messages, retrieves relevant context
+// from memory, builds prompts, calls the LLM, and stores responses.
 package agent
 
 import (
@@ -129,7 +132,7 @@ func (a *Agent) HandleMessage(ctx context.Context, userMsg string) (*memory.Mess
 		return nil, fmt.Errorf("getting recent messages: %w", err)
 	}
 
-	prompt := BuildPrompt(PromptInput{
+	prompt := BuildPrompt(&PromptInput{
 		Scratchpad:     scratchpad,
 		Episodes:       episodes,
 		Facts:          facts,
