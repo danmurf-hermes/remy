@@ -54,30 +54,29 @@ linters:
       simple: true
       range-loops: true
       for-loops: true
+  exclusions:
+    paths:
+      - frontend/node_modules
+    rules:
+      - linters:
+          - gosec
+        text: "G115"
+      - linters:
+          - gosec
+        text: "G304"
+      - linters:
+          - gosec
+        text: "G101"
+      - linters:
+          - revive
+        text: "exported"
+      - linters:
+          - revive
+        text: "package-comments"
+      - linters:
+          - revive
+        text: "blank-imports"
 
 formatters:
   enable:
     - gofmt
-
-issues:
-  exclude-dirs:
-    - frontend/node_modules
-  exclude-rules:
-    - linters:
-        - gosec
-      text: "G115"
-    - linters:
-        - gosec
-      text: "G304"
-    - linters:
-        - gosec
-      text: "G101"
-    - linters:
-        - revive
-      text: "exported"
-    - linters:
-        - revive
-      text: "package-comments"
-    - linters:
-        - revive
-      text: "blank-imports"
