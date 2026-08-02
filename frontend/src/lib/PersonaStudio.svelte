@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { personas, activePersona } from './stores.js'
-  import { getPersonas, switchPersona } from './wails.js'
+  import { getPersonas, switchPersona, getAvailableModels } from './wails.js'
 
   let loading = true
   let selectedPersona = null
@@ -15,6 +15,8 @@
   let newPersonaMaxTokens = 4096
   let newPersonaBody = 'You are a helpful assistant.'
   let error = null
+  let availableModels = []
+  let loadingModels = false
 
   onMount(async () => {
     await loadPersonas()
@@ -69,6 +71,16 @@
       model: parts[1] || 'unknown',
     }
   }
+
+  async function fetchModels() {
+    loadingModels = true
+    try {
+      availableModels = await getAvailableModels('http://localhost:11434/v1')
+    } catch (e) {
+      availableModels = []
+    }
+    loadingModels = false
+  }
 </script>
 
 <div class="persona-studio">
@@ -113,7 +125,18 @@
         </label>
         <label>
           Model
-          <input type="text" bind:value={newPersonaModel} class="input" />
+          <select bind:value={newPersonaModel} class="input">
+            {#if loadingModels}
+              <option value="">Loading…</option>
+            {:else if availableModels.length}
+              {#each availableModels as m}
+                <option value={m}>{m}</option>
+              {/each}
+            {:else}
+              <option value={newPersonaModel}>{newPersonaModel}</option>
+            {/if}
+          </select>
+          <button class="btn-small btn-outline" on:click={fetchModels}>Refresh</button>
         </label>
         <label>
           Temperature: {newPersonaTemperature}
@@ -210,7 +233,18 @@
             </label>
             <label>
               Model
-              <input type="text" bind:value={editingPersona.model} class="input" />
+              <select bind:value={editingPersona.model} class="input">
+                {#if loadingModels}
+                  <option value="">Loading…</option>
+                {:else if availableModels.length}
+                  {#each availableModels as m}
+                    <option value={m}>{m}</option>
+                  {/each}
+                {:else}
+                  <option value={editingPersona.model}>{editingPersona.model}</option>
+                {/if}
+              </select>
+              <button class="btn-small btn-outline" on:click={fetchModels}>Refresh</button>
             </label>
             <label>
               Temperature: 0.7

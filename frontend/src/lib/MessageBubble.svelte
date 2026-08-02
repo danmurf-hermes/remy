@@ -1,5 +1,7 @@
 <script>
   /* eslint-disable svelte/no-at-html-tags */
+  import { marked } from 'marked'
+
   export let message = {
     id: '',
     role: 'user',
@@ -13,12 +15,8 @@
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
-  function formatContent(text) {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>')
+  function renderMarkdown(text) {
+    return marked.parse(text, { breaks: true })
   }
 
   $: isUser = message.role === 'user'
@@ -31,7 +29,7 @@
     <div class="avatar">R</div>
   {/if}
   <div class="bubble" class:user-bubble={isUser} class:agent-bubble={isAgent}>
-    <div class="content">{@html formatContent(message.content)}</div>
+    <div class="content">{@html renderMarkdown(message.content)}</div>
     <div class="meta">
       <span class="time">{formatTime(message.timestamp)}</span>
       {#if isTelegram}

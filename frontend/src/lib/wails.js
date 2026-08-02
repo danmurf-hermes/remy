@@ -454,3 +454,10 @@ export async function updateConfig(config) {
   }
   return null
 }
+
+export async function getAvailableModels(endpoint) {
+  if (isWails) {
+    return window.go.app.App.GetAvailableModels(endpoint)
+  }
+  return ['llama3.1:8b', 'llama3.2:3b', 'nomic-embed-text', 'mistral:7b']
+}

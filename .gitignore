@@ -1,6 +1,8 @@
 build/
 frontend/node_modules/
 frontend/dist/
+frontend/wailsjs/
+frontend/package.json.md5
 *.db
 *.log
 .DS_Store

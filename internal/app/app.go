@@ -5,8 +5,11 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
@@ -68,6 +71,10 @@ func (a *App) SetEmitter(e Emitter) {
 // the agent, loads the active persona, and starts background services.
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+
+	if err := a.store.InitScratchpad(ctx); err != nil {
+		slog.Warn("Could not initialize scratchpad", "error", err)
+	}
 
 	if err := a.agent.LoadActivePersona(ctx); err != nil {
 		slog.Warn("Could not load active persona", "error", err)
@@ -780,6 +787,47 @@ func (a *App) UpdateConfig(cfg *ConfigDTO) error {
 	}
 	a.cfg = updated
 	return nil
+}
+
+// GetAvailableModels fetches the list of available models from a provider endpoint.
+func (a *App) GetAvailableModels(endpoint string) ([]string, error) {
+	modelsURL := strings.TrimSuffix(endpoint, "/v1") + "/v1/models"
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	req, err := http.NewRequestWithContext(a.ctx, "GET", modelsURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching models: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	var modelsResp struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &modelsResp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	models := make([]string, len(modelsResp.Data))
+	for i, m := range modelsResp.Data {
+		models[i] = m.ID
+	}
+	return models, nil
 }
 
 func configToDTO(cfg *config.Config) *ConfigDTO {

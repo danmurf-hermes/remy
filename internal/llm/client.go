@@ -55,6 +55,7 @@ func (c *OllamaClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 		req.Model = c.ChatModel
 	}
 	req.Stream = false
+	c.applyParameters(&req)
 
 	body, err := c.doRequest(ctx, http.MethodPost, c.Endpoint+chatEndpoint, req)
 	if err != nil {
@@ -82,6 +83,7 @@ func (c *OllamaClient) ChatStream(ctx context.Context, req ChatRequest) (<-chan 
 		req.Model = c.ChatModel
 	}
 	req.Stream = true
+	c.applyParameters(&req)
 
 	body, err := c.doRequest(ctx, http.MethodPost, c.Endpoint+chatEndpoint, req)
 	if err != nil {
@@ -154,6 +156,25 @@ func (c *OllamaClient) Embed(ctx context.Context, text string) ([]float32, error
 	}
 
 	return embedding, nil
+}
+
+func (c *OllamaClient) applyParameters(req *ChatRequest) {
+	if c.Parameters == nil {
+		return
+	}
+	if temp, ok := c.Parameters["temperature"]; ok {
+		if t, ok := temp.(float64); ok {
+			req.Temperature = t
+		}
+	}
+	if mt, ok := c.Parameters["max_tokens"]; ok {
+		switch v := mt.(type) {
+		case float64:
+			req.MaxTokens = int(v)
+		case int:
+			req.MaxTokens = v
+		}
+	}
 }
 
 func (c *OllamaClient) doRequest(ctx context.Context, method, url string, reqBody any) (io.ReadCloser, error) {

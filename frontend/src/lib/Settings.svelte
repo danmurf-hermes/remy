@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { config, darkMode } from './stores.js'
-  import { getConfig, updateConfig } from './wails.js'
+  import { getConfig, updateConfig, getAvailableModels } from './wails.js'
 
   let loading = true
   let saving = false
@@ -19,9 +19,12 @@
   let botToken = ''
   let temperature = 0.7
   let maxTokens = 4096
+  const availableModels = {}
+  const loadingModels = {}
 
   onMount(async () => {
     await loadConfig()
+    await fetchAllModels()
   })
 
   async function loadConfig() {
@@ -100,6 +103,26 @@
     return 'disconnected'
   }
 
+  async function fetchModels(name) {
+    const p = providers[name]
+    if (!p || !p.endpoint) {
+      return
+    }
+    loadingModels[name] = true
+    try {
+      availableModels[name] = await getAvailableModels(p.endpoint)
+    } catch (e) {
+      availableModels[name] = []
+    }
+    loadingModels[name] = false
+  }
+
+  async function fetchAllModels() {
+    for (const name of Object.keys(providers)) {
+      await fetchModels(name)
+    }
+  }
+
   const settingsTabs = [
     { id: 'providers', icon: '🔌', label: 'Providers' },
     { id: 'model', icon: '🤖', label: 'Model' },
@@ -156,15 +179,42 @@
                 </span>
               </div>
               <label>Endpoint <input type="text" bind:value={p.endpoint} class="input" /></label>
-              <label>Chat Model <input type="text" bind:value={p.chat_model} class="input" /></label
-              >
               <label
-                >Embedding Model <input
-                  type="text"
-                  bind:value={p.embedding_model}
-                  class="input"
-                /></label
-              >
+                >Chat Model
+                <select bind:value={p.chat_model} class="input">
+                  {#if loadingModels[name]}
+                    <option value="">Loading…</option>
+                  {:else if availableModels[name]?.length}
+                    {#each availableModels[name] as m}
+                      <option value={m}>{m}</option>
+                    {/each}
+                  {:else}
+                    <option value={p.chat_model}>{p.chat_model || 'No models found'}</option>
+                  {/if}
+                </select>
+                <button class="btn-small btn-outline" on:click={() => fetchModels(name)}
+                  >Refresh</button
+                >
+              </label>
+              <label
+                >Embedding Model
+                <select bind:value={p.embedding_model} class="input">
+                  {#if loadingModels[name]}
+                    <option value="">Loading…</option>
+                  {:else if availableModels[name]?.length}
+                    {#each availableModels[name] as m}
+                      <option value={m}>{m}</option>
+                    {/each}
+                  {:else}
+                    <option value={p.embedding_model}
+                      >{p.embedding_model || 'No models found'}</option
+                    >
+                  {/if}
+                </select>
+                <button class="btn-small btn-outline" on:click={() => fetchModels(name)}
+                  >Refresh</button
+                >
+              </label>
             </div>
           {/each}
           <h3>Default Provider</h3>
@@ -414,6 +464,25 @@
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .btn-small {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .btn-outline:hover {
+    background: var(--hover-bg);
   }
 
   .btn-secondary {
