@@ -1,4 +1,6 @@
 <script>
+  /* eslint-disable svelte/no-at-html-tags */
+  import { marked } from 'marked'
   import { onMount, onDestroy, afterUpdate } from 'svelte'
   import { messages, streamingContent, isStreaming, addToast } from '../lib/stores.js'
   import {
@@ -120,7 +122,7 @@
   }
 
   function handleKeydown(e) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
       handleSend()
     }
@@ -156,7 +158,11 @@
       <div class="streaming" role="status" aria-label="Assistant is typing">
         <div class="avatar" aria-hidden="true">R</div>
         <div class="bubble">
-          {$streamingContent}<span class="cursor" aria-hidden="true">|</span>
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          {@html marked.parse($streamingContent, { breaks: true })}<span
+            class="cursor"
+            aria-hidden="true">|</span
+          >
         </div>
       </div>
     {/if}
@@ -308,6 +314,34 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+  }
+
+  .streaming .bubble :global(p) {
+    margin: 0;
+  }
+
+  .streaming .bubble :global(code) {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .streaming .bubble :global(pre) {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .streaming .bubble :global(pre code) {
+    background: none;
+    padding: 0;
+    border-radius: 0;
   }
 
   .cursor {
