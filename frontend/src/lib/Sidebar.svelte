@@ -84,7 +84,11 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
     box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
   }
 
