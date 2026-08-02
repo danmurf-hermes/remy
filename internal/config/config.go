@@ -81,8 +81,8 @@ func DefaultConfig() *Config {
 		Memory: MemoryConfig{
 			DBPath:                    "~/.remy/memory.db",
 			WorkingMemoryTurns:        20,
-			QuickConsolidationDelayMs: 300000,
-			DeepConsolidationDelayMs:  1800000,
+			QuickConsolidationDelayMs: 30000,  // 30 seconds
+			DeepConsolidationDelayMs:  300000, // 5 minutes
 		},
 		Persona: PersonaConfig{
 			Active:    "default",
