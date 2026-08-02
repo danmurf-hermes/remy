@@ -159,10 +159,7 @@
         <div class="avatar" aria-hidden="true">R</div>
         <div class="bubble">
           <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          {@html marked.parse($streamingContent, { breaks: true })}<span
-            class="cursor"
-            aria-hidden="true">|</span
-          >
+          {@html marked.parse($streamingContent, { breaks: true })}
         </div>
       </div>
     {/if}
@@ -173,6 +170,15 @@
       </button>
     {/if}
   </div>
+
+  {#if $isStreaming}
+    <div class="typing-indicator" aria-live="polite">
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-label">Remy is typing</span>
+    </div>
+  {/if}
 
   <div class="input-area">
     <div class="input-row">
@@ -344,13 +350,45 @@
     border-radius: 0;
   }
 
-  .cursor {
-    animation: blink 1s step-end infinite;
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 20px 2px;
+    font-size: 12px;
+    color: var(--text-tertiary);
   }
 
-  @keyframes blink {
-    50% {
-      opacity: 0;
+  .typing-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    animation: typingBounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  .typing-label {
+    margin-left: 6px;
+  }
+
+  @keyframes typingBounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
     }
   }
 
