@@ -61,6 +61,23 @@
   })
 
   onDestroy(() => {
+    // Save any in-progress streaming content before unmounting
+    const pendingContent = $streamingContent
+    if (pendingContent) {
+      messages.update((msgs) => [
+        ...msgs,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: pendingContent,
+          timestamp: Date.now(),
+          interface: 'gui',
+        },
+      ])
+    }
+    streamingContent.set('')
+    isStreaming.set(false)
+
     // Clean up stream event listeners to prevent duplicates on re-mount
     const runtime = window.runtime
     if (runtime) {
