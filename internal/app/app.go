@@ -10,6 +10,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -236,6 +238,39 @@ func (a *App) GetActivePersona() string {
 		return "default"
 	}
 	return p.Name
+}
+
+// CreatePersona creates a new persona file on disk.
+func (a *App) CreatePersona(name, provider, model string, temperature float64, maxTokens int, body string) error {
+	if a.ctx == nil {
+		return fmt.Errorf("app not started")
+	}
+	if name == "" {
+		return fmt.Errorf("persona name is required")
+	}
+
+	dir := a.cfg.Persona.Directory
+	if dir == "" {
+		dir = "~/.remy/personas/"
+	}
+	if dir[0] == '~' {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("home directory: %w", err)
+		}
+		dir = filepath.Join(home, dir[1:])
+	}
+
+	path := filepath.Join(dir, name+".md")
+	p := &persona.Persona{
+		Name:        name,
+		Provider:    provider,
+		Model:       model,
+		Temperature: &temperature,
+		MaxTokens:   &maxTokens,
+		Body:        body,
+	}
+	return persona.SavePersona(path, p)
 }
 
 func (a *App) emit(event string, data any) error {

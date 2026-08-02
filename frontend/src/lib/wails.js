@@ -62,6 +62,13 @@ export async function getActivePersona() {
   return 'default'
 }
 
+export async function createPersona(name, provider, model, temperature, maxTokens, body) {
+  if (isWails) {
+    return window.go.app.App.CreatePersona(name, provider, model, temperature, maxTokens, body)
+  }
+  return null
+}
+
 // --- Memory Explorer bindings ---
 
 export async function getFacts(category) {

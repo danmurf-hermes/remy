@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { personas, activePersona } from './stores.js'
-  import { getPersonas, switchPersona, getAvailableModels } from './wails.js'
+  import { getPersonas, switchPersona, getAvailableModels, createPersona } from './wails.js'
 
   let loading = true
   let selectedPersona = null
@@ -59,8 +59,23 @@
     }
     error = null
     showCreateDialog = false
-    newPersonaName = ''
-    await loadPersonas()
+    try {
+      await createPersona(
+        newPersonaName,
+        newPersonaProvider,
+        newPersonaModel,
+        newPersonaTemperature,
+        newPersonaMaxTokens,
+        newPersonaBody,
+      )
+      newPersonaName = ''
+      newPersonaBody = 'You are a helpful assistant.'
+      newPersonaTemperature = 0.7
+      newPersonaMaxTokens = 4096
+      await loadPersonas()
+    } catch (e) {
+      error = 'Failed to create persona: ' + e.message
+    }
   }
 
   function getProviderModel(persona) {
