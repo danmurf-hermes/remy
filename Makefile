@@ -15,7 +15,7 @@ setup:
 
 # One-command run: ensures deps are installed, then launches the GUI
 run: frontend-deps
-	@wails dev
+	@PATH="$$(go env GOPATH)/bin:$$PATH" wails dev
 
 build:
 	@mkdir -p $(BUILD_DIR)
