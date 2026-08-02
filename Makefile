@@ -1,9 +1,21 @@
-.PHONY: build dev test lint lint-go lint-frontend fmt clean pre-commit release release-dry-run
+.PHONY: build dev run setup test lint lint-go lint-frontend fmt clean pre-commit release release-dry-run
 
 BINARY_NAME=remy
 BUILD_DIR=build
 VERSION=$(shell git describe --tags 2>/dev/null || echo "dev")
 LDFLAGS=-ldflags="-X main.Version=$(VERSION) -s -w"
+
+# First-time setup: install Wails CLI and frontend deps
+setup:
+	@echo "Installing Wails CLI..."
+	@go install github.com/wailsapp/wails/v2/cmd/wails@latest
+	@echo "Installing frontend dependencies..."
+	@cd frontend && npm ci
+	@echo "Done. Run 'make run' to start the app."
+
+# One-command run: ensures deps are installed, then launches the GUI
+run: frontend-deps
+	@wails dev
 
 build:
 	@mkdir -p $(BUILD_DIR)
