@@ -1,5 +1,5 @@
 <script>
-  import { onMount, afterUpdate } from 'svelte'
+  import { onMount, onDestroy, afterUpdate } from 'svelte'
   import { messages, streamingContent, isStreaming, addToast } from '../lib/stores.js'
   import {
     sendMessageStream,
@@ -56,6 +56,16 @@
         inputEl.blur()
       }
     })
+  })
+
+  onDestroy(() => {
+    // Clean up stream event listeners to prevent duplicates on re-mount
+    const runtime = window.runtime
+    if (runtime) {
+      runtime.EventsOff('stream:chunk')
+      runtime.EventsOff('stream:done')
+      runtime.EventsOff('stream:error')
+    }
   })
 
   afterUpdate(() => {
