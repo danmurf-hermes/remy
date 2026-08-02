@@ -69,54 +69,72 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      'SF Pro',
+      'Helvetica Neue',
+      sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition:
       background-color 0.2s,
       color 0.2s;
   }
 
   :global(:root) {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f5f5f7;
-    --bg-tertiary: #e8e8ed;
+    --bg-primary: rgba(255, 255, 255, 0.72);
+    --bg-secondary: rgba(246, 246, 248, 0.85);
+    --bg-tertiary: rgba(232, 232, 237, 0.8);
     --text-primary: #1d1d1f;
     --text-secondary: #6e6e73;
     --text-tertiary: #86868b;
-    --border-color: #d2d2d7;
-    --border-light: #e8e8ed;
-    --accent: #007aff;
-    --accent-hover: #0056cc;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-light: rgba(0, 0, 0, 0.06);
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
     --danger: #ff3b30;
     --danger-hover: #d62d20;
     --success: #34c759;
     --warning: #ff9500;
-    --shadow: rgba(0, 0, 0, 0.1);
-    --input-bg: #ffffff;
-    --card-bg: #f5f5f7;
-    --hover-bg: #f0f0f5;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --card-bg: rgba(255, 255, 255, 0.5);
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --frosted: backdrop-filter blur(20px) saturate(180%);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+    --font-mono: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', monospace;
   }
 
   :global(.dark) {
-    --bg-primary: #1c1c1e;
-    --bg-secondary: #2c2c2e;
-    --bg-tertiary: #3a3a3c;
+    --bg-primary: rgba(28, 28, 30, 0.85);
+    --bg-secondary: rgba(30, 30, 32, 0.9);
+    --bg-tertiary: rgba(44, 44, 46, 0.8);
     --text-primary: #f5f5f7;
     --text-secondary: #a1a1a6;
     --text-tertiary: #6e6e73;
-    --border-color: #48484a;
-    --border-light: #38383a;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.06);
     --accent: #0a84ff;
     --accent-hover: #409cff;
     --danger: #ff453a;
     --danger-hover: #ff6b5e;
     --success: #30d158;
     --warning: #ff9f0a;
-    --shadow: rgba(0, 0, 0, 0.3);
-    --input-bg: #2c2c2e;
-    --card-bg: #2c2c2e;
-    --hover-bg: #3a3a3c;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+    --input-bg: rgba(44, 44, 46, 0.8);
+    --card-bg: rgba(44, 44, 46, 0.6);
+    --hover-bg: rgba(255, 255, 255, 0.08);
   }
 
   .app {

@@ -44,9 +44,21 @@
 <style>
   .message {
     display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    max-width: 80%;
+    gap: 10px;
+    margin-bottom: 6px;
+    max-width: 78%;
+    animation: messageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes messageIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
   .message.user {
@@ -59,49 +71,58 @@
   }
 
   .avatar {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: #007aff;
+    background: linear-gradient(135deg, var(--accent), #5856d6);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 113, 227, 0.2);
+    margin-top: 4px;
   }
 
   .bubble {
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 10px 16px;
+    border-radius: 18px;
     font-size: 14px;
     line-height: 1.5;
     word-wrap: break-word;
+    position: relative;
   }
 
   .user-bubble {
-    background: #007aff;
+    background: var(--accent);
     color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 113, 227, 0.2);
   }
 
   .agent-bubble {
-    background: #f0f0f5;
-    color: #1d1d1f;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
     border-bottom-left-radius: 4px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   .content {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .meta {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
-    opacity: 0.7;
+    font-size: 10px;
+    opacity: 0.6;
+    margin-top: 2px;
   }
 
   .user .meta {
@@ -109,6 +130,6 @@
   }
 
   .interface {
-    font-size: 12px;
+    font-size: 11px;
   }
 </style>

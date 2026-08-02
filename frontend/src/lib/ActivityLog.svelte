@@ -106,14 +106,14 @@
     </div>
     <input
       type="text"
-      placeholder="Search entries..."
+      placeholder="Search entries…"
       bind:value={searchQuery}
       class="search-input"
     />
   </div>
 
   {#if loading}
-    <div class="loading">Loading activity log...</div>
+    <div class="loading">Loading activity log…</div>
   {:else if filteredLog.length === 0}
     <div class="empty">
       <p>No activity entries found</p>
@@ -193,26 +193,28 @@
   }
 
   .btn-secondary {
-    background: #e8e8ed;
-    color: #1d1d1f;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
+    transition: all 0.15s ease;
   }
 
   .btn-secondary:hover {
-    background: #dcdce0;
+    background: var(--hover-bg);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 12px;
     font-size: 13px;
+    border: 1px solid rgba(255, 59, 48, 0.2);
   }
 
   .controls {
@@ -230,43 +232,52 @@
 
   .chip {
     padding: 4px 12px;
-    border-radius: 16px;
-    border: 1px solid #d2d2d7;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color);
     background: transparent;
     font-size: 12px;
     cursor: pointer;
-    color: #6e6e73;
+    color: var(--text-secondary);
     transition: all 0.15s;
   }
 
   .chip:hover {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .chip.active {
-    background: #0071e3;
+    background: var(--accent);
     color: white;
-    border-color: #0071e3;
+    border-color: var(--accent);
   }
 
   .search-input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     font-size: 13px;
     box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
   .empty {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -277,19 +288,22 @@
   }
 
   .timeline-entry {
-    border-radius: 8px;
-    border: 1px solid #e8e8ed;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
     overflow: hidden;
     transition: all 0.15s;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .timeline-entry:hover {
-    border-color: #d2d2d7;
+    border-color: var(--border-color);
   }
 
   .timeline-entry.error-entry {
-    border-color: #ffd7d7;
-    background: #fff8f8;
+    border-color: rgba(255, 59, 48, 0.3);
+    background: rgba(255, 59, 48, 0.05);
   }
 
   .entry-header {
@@ -321,17 +335,17 @@
 
   .entry-time {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .expand-icon {
     font-size: 10px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .entry-details {
     padding: 0 12px 12px;
-    border-top: 1px solid #e8e8ed;
+    border-top: 1px solid var(--border-light);
     padding-top: 10px;
   }
 
@@ -343,13 +357,13 @@
   }
 
   .detail-label {
-    color: #86868b;
+    color: var(--text-tertiary);
     min-width: 60px;
   }
 
   .detail-value {
-    color: #1d1d1f;
-    font-family: 'SF Mono', Monaco, monospace;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
   }
 
   .detail-json {
@@ -357,13 +371,14 @@
   }
 
   .detail-json pre {
-    background: #f5f5f7;
-    border-radius: 6px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
     padding: 10px;
     font-size: 11px;
     overflow-x: auto;
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
+    font-family: var(--font-mono);
   }
 </style>

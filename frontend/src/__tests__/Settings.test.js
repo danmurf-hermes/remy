@@ -32,12 +32,12 @@ afterEach(cleanup)
 describe('Settings', () => {
   it('renders the settings header', () => {
     render(Settings)
-    expect(screen.getByText('Settings')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Providers' })).toBeTruthy()
   })
 
   it('shows save button', () => {
     render(Settings)
-    expect(screen.getByText('Save')).toBeTruthy()
+    expect(screen.getByText('Save Changes')).toBeTruthy()
   })
 
   it('renders without crashing', () => {
