@@ -438,6 +438,12 @@ func (a *Agent) HandleMessageStream(ctx context.Context, userMsg string) (<-chan
 		}
 
 		ch <- StreamChunk{Done: true}
+
+		// Trigger quick consolidation after the response completes
+		recentMessages, err := a.store.GetMessages(ctx, quickConsolidationMessageCount, 0)
+		if err == nil && len(recentMessages) > 0 {
+			_ = a.QuickConsolidation(ctx, recentMessages)
+		}
 	}()
 
 	return ch, nil
