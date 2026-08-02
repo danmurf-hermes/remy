@@ -6,23 +6,25 @@
 
 > **Remy** (from Latin *rememorari* — to remember) is a personal AI assistant that remembers your conversations naturally, picks up where you left off, and gets to know you over time.
 
-Remy is not a productivity agent that runs commands or edits files. It's a **conversational companion** that lives on your machine, remembers who you are, and is always there to chat — across desktop and Telegram.
+Remy is a conversational companion that lives on your machine, remembers who you are, and is always there to chat — across desktop and Telegram.
+
+> **⚠️ Experimental** — Remy is in active development. It connects to local and remote LLM providers, and depending on your configuration, may generate significant API usage. **You are responsible for monitoring your own token consumption and associated costs.** Review your provider settings and set spending limits where available.
 
 ---
 
-## ✨ Features
+## Features
 
-- **🧠 Persistent Memory** — Three-tier memory system (working, episodic, semantic) inspired by human memory. Remy remembers your conversations, learns facts about you, and builds a model of your world over time.
-- **💬 Desktop GUI** — Beautiful Svelte + Wails desktop app with streaming responses, conversation management, and full memory explorer.
-- **📱 Telegram Interface** — Chat with Remy from your phone via Telegram. All memory is shared across interfaces.
-- **👤 Custom Personas** — Create custom personas with YAML frontmatter. Change Remy's personality, provider, or model on the fly.
-- **📋 Tasks & Reminders** — "Remind me to buy milk at 5pm" — Remy handles scheduling, recurring tasks, and notifications.
-- **🔍 Memory Explorer** — Browse facts, episode timeline, entity graph, and scratchpad. Search semantically or by keyword.
-- **🔒 Local-First** — Everything runs on your machine. No cloud, no data leaving your computer. SQLite with built-in vector search.
+- **Persistent Memory** — Three-tier memory system (working, episodic, semantic) inspired by human memory. Remy remembers your conversations, learns facts about you, and builds a model of your world over time.
+- **Desktop GUI** — Svelte + Wails desktop app with streaming responses, conversation management, and a full memory explorer.
+- **Telegram Interface** — Chat with Remy from your phone via Telegram. All memory is shared across interfaces.
+- **Custom Personas** — Create custom personas with YAML frontmatter. Change Remy's personality, provider, or model on the fly.
+- **Tasks & Reminders** — "Remind me to buy milk at 5pm" — Remy handles scheduling, recurring tasks, and notifications.
+- **Memory Explorer** — Browse facts, episode timeline, entity graph, and scratchpad. Search semantically or by keyword.
+- **Local-First** — Everything runs on your machine. No cloud, no data leaving your computer. SQLite with built-in vector search.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -59,17 +61,7 @@ remy --daemon
 
 ---
 
-## 📸 Screenshots
-
-> *Screenshots coming soon.*
-
-| Chat | Memory Explorer | Tasks |
-|------|----------------|-------|
-| ![Chat](docs/screenshots/chat.png) | ![Memory](docs/screenshots/memory.png) | ![Tasks](docs/screenshots/tasks.png) |
-
----
-
-## 📚 Documentation
+## Documentation
 
 | Topic | Guide |
 |-------|-------|
@@ -81,7 +73,7 @@ remy --daemon
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Remy is built with:
 
@@ -94,17 +86,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design.
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
-
-- Setting up the dev environment
-- Running tests
-- Code style guide
-- How to submit PRs
-
----
-
-## 📄 License
+## License
 
 MIT — see [LICENSE](LICENSE).
