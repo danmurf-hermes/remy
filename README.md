@@ -8,7 +8,9 @@
 
 Remy is a conversational companion that lives on your machine, remembers who you are, and is always there to chat — across desktop and Telegram.
 
-> **⚠️ Experimental** — Remy is in active development. It connects to local and remote LLM providers, and depending on your configuration, may generate significant API usage. **You are responsible for monitoring your own token consumption and associated costs.** Review your provider settings and set spending limits where available.
+> **⚠️ Early Stage** — Remy is a personal hobby project in active development. Expect bugs, rough edges, and breaking changes.
+
+> **⚠️ Experimental** — Remy connects to local and remote LLM providers, and depending on your configuration, may generate significant API usage. **You are responsible for monitoring your own token consumption and associated costs.** Review your provider settings and set spending limits where available.
 
 ---
 
