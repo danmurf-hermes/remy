@@ -17,6 +17,7 @@
   let deepConsolidationDelayMs = 1800000
   let telegramEnabled = false
   let botToken = ''
+  let allowedUsers = ''
   let temperature = 0.7
   let maxTokens = 4096
   const availableModels = {}
@@ -40,6 +41,7 @@
       deepConsolidationDelayMs = cfg.memory?.deep_consolidation_delay_ms || 1800000
       telegramEnabled = cfg.interfaces?.telegram?.enabled || false
       botToken = cfg.interfaces?.telegram?.bot_token || ''
+      allowedUsers = (cfg.interfaces?.telegram?.allowed_users || []).join(', ')
       const params = Object.values(providers)[0]?.parameters || {}
       temperature = params.temperature || 0.7
       maxTokens = params.max_tokens || 4096
@@ -78,7 +80,10 @@
           telegram: {
             enabled: telegramEnabled,
             bot_token: botToken,
-            allowed_users: $config?.interfaces?.telegram?.allowed_users || [],
+            allowed_users: allowedUsers
+              .split(',')
+              .map((u) => u.trim())
+              .filter((u) => u.length > 0),
           },
         },
       }
@@ -284,6 +289,14 @@
                 bind:value={botToken}
                 class="input"
                 placeholder="Enter your bot token"
+              /></label
+            >
+            <label
+              >Allowed User IDs <input
+                type="text"
+                bind:value={allowedUsers}
+                class="input"
+                placeholder="Comma-separated Telegram user IDs (leave empty to allow all)"
               /></label
             >
           {/if}
