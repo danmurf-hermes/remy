@@ -113,37 +113,34 @@
 </script>
 
 <div class="settings">
-  <div class="header">
-    <h2>Settings</h2>
-    <button class="btn-primary" on:click={handleSave} disabled={saving}>
-      {saving ? 'Saving...' : 'Save'}
-    </button>
-  </div>
-
-  {#if error}
-    <div class="error-banner">{error}</div>
-  {/if}
-  {#if success}
-    <div class="success-banner">{success}</div>
-  {/if}
-
-  {#if loading}
-    <div class="loading">Loading settings...</div>
-  {:else}
-    <div class="settings-tabs">
+  <div class="settings-layout">
+    <nav class="settings-nav">
       {#each settingsTabs as tab}
         <button
-          class="settings-tab"
+          class="settings-nav-item"
           class:active={activeTab === tab.id}
           on:click={() => (activeTab = tab.id)}
         >
           {tab.label}
         </button>
       {/each}
-    </div>
+    </nav>
 
     <div class="settings-content">
-      {#if activeTab === 'providers'}
+      <div class="settings-header">
+        <h2>{settingsTabs.find((t) => t.id === activeTab)?.label}</h2>
+      </div>
+
+      {#if error}
+        <div class="error-banner">{error}</div>
+      {/if}
+      {#if success}
+        <div class="success-banner">{success}</div>
+      {/if}
+
+      {#if loading}
+        <div class="loading">Loading settings…</div>
+      {:else if activeTab === 'providers'}
         <div class="section">
           <h3>Provider Management</h3>
           {#each Object.entries(providers) as [name, p]}
@@ -209,18 +206,24 @@
       {:else if activeTab === 'appearance'}
         <div class="section">
           <h3>Appearance</h3>
-          <label class="toggle-label">
+          <label class="toggle-row">
             <span>Dark Mode</span>
-            <input type="checkbox" bind:checked={$darkMode} class="toggle" />
+            <label class="switch">
+              <input type="checkbox" bind:checked={$darkMode} />
+              <span class="slider-track"></span>
+            </label>
           </label>
           <p class="hint">When disabled, follows system preference.</p>
         </div>
       {:else if activeTab === 'telegram'}
         <div class="section">
           <h3>Telegram Integration</h3>
-          <label class="toggle-label">
+          <label class="toggle-row">
             <span>Enable Telegram Bot</span>
-            <input type="checkbox" bind:checked={telegramEnabled} class="toggle" />
+            <label class="switch">
+              <input type="checkbox" bind:checked={telegramEnabled} />
+              <span class="slider-track"></span>
+            </label>
           </label>
           {#if telegramEnabled}
             <label>
@@ -313,43 +316,90 @@
           </div>
         </div>
       {/if}
+
+      <div class="settings-footer">
+        <button class="btn-primary" on:click={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
     </div>
-  {/if}
+  </div>
 </div>
 
 <style>
   .settings {
     flex: 1;
-    padding: 24px;
-    overflow-y: auto;
-  }
-
-  .header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    overflow: hidden;
   }
 
-  .header h2 {
-    margin: 0;
-    font-size: 20px;
+  .settings-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .settings-nav {
+    width: 200px;
+    border-right: 1px solid var(--border-color);
+    padding: 20px 12px;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    flex-shrink: 0;
+  }
+
+  .settings-nav-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+    margin-bottom: 2px;
+  }
+
+  .settings-nav-item:hover {
+    background: var(--hover-bg);
+  }
+
+  .settings-nav-item.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 500;
+  }
+
+  .settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+
+  .settings-header h2 {
+    margin: 0 0 20px 0;
+    font-size: 22px;
     font-weight: 600;
   }
 
   .btn-primary {
-    background: #0071e3;
+    background: var(--accent);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 8px 20px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: all 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-primary:disabled {
@@ -358,84 +408,67 @@
   }
 
   .btn-secondary {
-    background: #e8e8ed;
-    color: #1d1d1f;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--hover-bg);
   }
 
   .btn-danger {
-    background: #ff3b30;
+    background: var(--danger);
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-danger:hover {
+    background: var(--danger-hover);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 12px;
     font-size: 13px;
+    border: 1px solid rgba(255, 59, 48, 0.2);
   }
 
   .success-banner {
-    background: #e8f8e8;
-    color: #1a7d1a;
+    background: rgba(52, 199, 89, 0.1);
+    color: var(--success);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 12px;
     font-size: 13px;
+    border: 1px solid rgba(52, 199, 89, 0.2);
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
-  .settings-tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #e8e8ed;
-    padding-bottom: 0;
-  }
-
-  .settings-tab {
-    padding: 8px 16px;
-    border: none;
-    background: transparent;
-    font-size: 13px;
-    cursor: pointer;
-    color: #6e6e73;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all 0.15s;
-  }
-
-  .settings-tab:hover {
-    color: #1d1d1f;
-  }
-
-  .settings-tab.active {
-    color: #0071e3;
-    border-bottom-color: #0071e3;
-  }
-
   .section {
-    max-width: 600px;
+    max-width: 500px;
   }
 
   .section h3 {
-    margin: 20px 0 12px 0;
+    margin: 24px 0 12px 0;
     font-size: 15px;
     font-weight: 600;
   }
@@ -445,10 +478,13 @@
   }
 
   .provider-card {
-    background: #f5f5f7;
-    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 16px;
     margin-bottom: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .provider-header {
@@ -466,61 +502,131 @@
   .status-badge {
     font-size: 11px;
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: var(--radius-xl);
     font-weight: 500;
   }
 
   .status-badge.connected {
-    background: #e8f8e8;
-    color: #1a7d1a;
+    background: rgba(52, 199, 89, 0.15);
+    color: var(--success);
   }
 
   .status-badge.disconnected {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
   }
 
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .slider {
     width: 100%;
     margin-bottom: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bg-tertiary);
+    outline: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
-  .toggle-label {
+  .toggle-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
-    color: #1d1d1f;
-    margin-bottom: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
   }
 
-  .toggle {
-    width: 20px;
+  .toggle-row span {
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider-track {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-tertiary);
+    border-radius: 24px;
+    transition: all 0.2s;
+  }
+
+  .slider-track::before {
+    content: '';
+    position: absolute;
     height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .switch input:checked + .slider-track {
+    background: var(--accent);
+  }
+
+  .switch input:checked + .slider-track::before {
+    transform: translateX(20px);
   }
 
   .hint {
     font-size: 12px;
-    color: var(--text-secondary, #6e6e73);
-    margin-top: -8px;
-    margin-bottom: 12px;
+    color: var(--text-tertiary);
+    margin: 8px 0 0 0;
   }
 
   .data-actions {
@@ -530,16 +636,19 @@
   }
 
   .about-info {
-    background: #f5f5f7;
-    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 16px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .about-row {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #e8e8ed;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .about-row:last-child {
@@ -548,12 +657,18 @@
 
   .about-label {
     font-size: 13px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .about-value {
     font-size: 13px;
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text-primary);
+  }
+
+  .settings-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
   }
 </style>

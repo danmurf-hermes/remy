@@ -45,8 +45,20 @@
   .message {
     display: flex;
     gap: 8px;
-    margin-bottom: 12px;
-    max-width: 80%;
+    margin-bottom: 10px;
+    max-width: 75%;
+    animation: messageIn 0.2s ease-out;
+  }
+
+  @keyframes messageIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .message.user {
@@ -62,34 +74,39 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #007aff;
+    background: var(--accent);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .bubble {
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-lg);
     font-size: 14px;
     line-height: 1.5;
     word-wrap: break-word;
+    box-shadow: var(--shadow-sm);
   }
 
   .user-bubble {
-    background: #007aff;
+    background: var(--accent);
     color: white;
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: var(--radius-sm);
   }
 
   .agent-bubble {
-    background: #f0f0f5;
-    color: #1d1d1f;
-    border-bottom-left-radius: 4px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-bottom-left-radius: var(--radius-sm);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .content {

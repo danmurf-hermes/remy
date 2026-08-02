@@ -17,6 +17,6 @@ describe('App', () => {
 
   it('shows chat view by default', () => {
     render(App)
-    expect(screen.getByPlaceholderText('Type a message...')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Message Remy…')).toBeTruthy()
   })
 })

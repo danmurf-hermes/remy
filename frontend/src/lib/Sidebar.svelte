@@ -12,60 +12,79 @@
 </script>
 
 <nav class="sidebar" aria-label="Main navigation">
-  {#each tabs as tab}
-    <button
-      class="tab-btn"
-      class:active={$activeTab === tab.id}
-      on:click={() => activeTab.set(tab.id)}
-      title={tab.label}
-      aria-label={tab.label}
-      aria-current={$activeTab === tab.id ? 'page' : undefined}
-    >
-      <span class="icon" aria-hidden="true">{tab.icon}</span>
-    </button>
-  {/each}
+  <div class="sidebar-inner">
+    {#each tabs as tab}
+      <button
+        class="tab-btn"
+        class:active={$activeTab === tab.id}
+        on:click={() => activeTab.set(tab.id)}
+        title={tab.label}
+        aria-label={tab.label}
+        aria-current={$activeTab === tab.id ? 'page' : undefined}
+      >
+        <span class="icon" aria-hidden="true">{tab.icon}</span>
+        <span class="label">{tab.label}</span>
+      </button>
+    {/each}
+  </div>
 </nav>
 
 <style>
   .sidebar {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    width: 48px;
+    width: 68px;
     background: var(--bg-secondary);
-    border-right: 1px solid var(--border-light);
-    padding: 8px 0;
-    gap: 4px;
+    border-right: 1px solid var(--border-color);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    padding: 12px 0;
+  }
+
+  .sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 8px;
   }
 
   .tab-btn {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 52px;
+    height: 48px;
     border: none;
     background: transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition:
-      background 0.15s,
-      opacity 0.15s;
-    opacity: 0.5;
+    transition: all 0.15s ease;
+    gap: 2px;
   }
 
   .tab-btn:hover {
     background: var(--hover-bg);
-    opacity: 0.8;
   }
 
   .tab-btn.active {
-    background: var(--hover-bg);
-    opacity: 1;
+    background: var(--accent);
   }
 
   .icon {
     font-size: 18px;
     line-height: 1;
+  }
+
+  .label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    line-height: 1;
+  }
+
+  .tab-btn.active .label {
+    color: white;
   }
 </style>

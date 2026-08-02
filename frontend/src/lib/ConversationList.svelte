@@ -32,41 +32,46 @@
 
 <style>
   .conversation-list {
-    width: 200px;
-    border-right: 1px solid var(--border-light);
+    width: 220px;
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     background: var(--bg-secondary);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   .header {
-    padding: 12px;
+    padding: 16px 16px 12px;
     border-bottom: 1px solid var(--border-light);
   }
 
   .header h3 {
     margin: 0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .list {
     flex: 1;
     overflow-y: auto;
-    padding: 4px;
+    padding: 4px 8px;
   }
 
   .conv-item {
     display: block;
     width: 100%;
-    padding: 8px 10px;
+    padding: 10px 12px;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     text-align: left;
     margin-bottom: 2px;
+    transition: all 0.15s ease;
   }
 
   .conv-item:hover {
@@ -74,7 +79,12 @@
   }
 
   .conv-item.active {
-    background: var(--bg-tertiary);
+    background: var(--accent);
+  }
+
+  .conv-item.active .conv-name,
+  .conv-item.active .conv-preview {
+    color: white;
   }
 
   .conv-name {

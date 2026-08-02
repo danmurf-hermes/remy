@@ -41,7 +41,7 @@
       <input
         type="text"
         bind:value={searchQuery}
-        placeholder="Search memory..."
+        placeholder="Search memory…"
         on:input={handleSearch}
       />
       {#if searchQuery}
@@ -137,8 +137,10 @@
     display: flex;
     gap: 8px;
     padding: 12px 16px;
-    border-bottom: 1px solid #e0e0e0;
-    background: white;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     align-items: center;
   }
 
@@ -146,14 +148,16 @@
     flex: 1;
     display: flex;
     align-items: center;
-    background: #f5f5f7;
-    border-radius: 8px;
+    background: var(--input-bg);
+    border-radius: var(--radius-md);
     padding: 0 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.15s;
   }
 
   .search-input-wrapper:focus-within {
-    border-color: #007aff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .search-icon {
@@ -170,6 +174,7 @@
     font-size: 14px;
     outline: none;
     font-family: inherit;
+    color: var(--text-primary);
   }
 
   .clear-btn {
@@ -179,6 +184,7 @@
     font-size: 14px;
     opacity: 0.5;
     padding: 4px;
+    color: var(--text-primary);
   }
 
   .clear-btn:hover {
@@ -188,37 +194,40 @@
   .search-type-toggle {
     display: flex;
     gap: 0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     overflow: hidden;
     flex-shrink: 0;
   }
 
   .toggle-btn {
     border: none;
-    background: white;
+    background: transparent;
     padding: 6px 12px;
     font-size: 12px;
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.15s;
+    transition: all 0.15s;
+    color: var(--text-secondary);
   }
 
   .toggle-btn.active {
-    background: #007aff;
+    background: var(--accent);
     color: white;
   }
 
   .toggle-btn:not(.active):hover {
-    background: #f0f0f5;
+    background: var(--hover-bg);
   }
 
   .sub-nav {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
     padding: 0 16px;
-    background: #fafafa;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     flex-shrink: 0;
   }
 
@@ -229,19 +238,19 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-tertiary);
     border-bottom: 2px solid transparent;
     font-family: inherit;
     transition: all 0.15s;
   }
 
   .sub-tab:hover {
-    color: #1d1d1f;
+    color: var(--text-primary);
   }
 
   .sub-tab.active {
-    color: #007aff;
-    border-bottom-color: #007aff;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
 
   .sub-content {
@@ -275,6 +284,7 @@
     font-size: 16px;
     opacity: 0.5;
     padding: 4px 8px;
+    color: var(--text-primary);
   }
 
   .close-results:hover {
@@ -289,14 +299,17 @@
     margin: 0 0 8px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-secondary);
   }
 
   .result-item {
-    padding: 10px 12px;
-    background: #f5f5f7;
-    border-radius: 8px;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
     margin-bottom: 8px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .result-text {
@@ -308,15 +321,15 @@
   .result-category,
   .result-importance {
     font-size: 11px;
-    color: #86868b;
-    background: #e8e8ed;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
   }
 
   .no-results {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 14px;
     padding: 40px 0;
   }

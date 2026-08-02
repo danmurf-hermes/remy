@@ -56,8 +56,6 @@
       return
     }
     error = null
-    // In a real implementation, this would call a Go binding to create the persona file
-    // For now, we simulate by reloading
     showCreateDialog = false
     newPersonaName = ''
     await loadPersonas()
@@ -76,7 +74,7 @@
 <div class="persona-studio">
   <div class="header">
     <h2>Persona Studio</h2>
-    <button class="btn-primary" on:click={() => (showCreateDialog = true)}> + New Persona </button>
+    <button class="btn-primary" on:click={() => (showCreateDialog = true)}>+ New Persona</button>
   </div>
 
   {#if error}
@@ -152,7 +150,7 @@
   {/if}
 
   {#if loading}
-    <div class="loading">Loading personas...</div>
+    <div class="loading">Loading personas…</div>
   {:else}
     <div class="split-panel">
       <div class="list-panel">
@@ -233,7 +231,7 @@
                 <p>Be concise, accurate, and helpful.</p>
               </div>
             {:else}
-              <textarea class="textarea" rows="8" placeholder="Enter system prompt in Markdown...">
+              <textarea class="textarea" rows="8" placeholder="Enter system prompt in Markdown…">
                 You are a helpful AI assistant named Remy. You have access to the user's
                 conversation history and memory. Be concise, accurate, and helpful.
               </textarea>
@@ -271,60 +269,68 @@
   }
 
   .btn-primary {
-    background: #0071e3;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: all 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-secondary {
-    background: #e8e8ed;
-    color: #1d1d1f;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--hover-bg);
   }
 
   .btn-small {
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
     font-size: 12px;
+    transition: all 0.15s ease;
   }
 
   .btn-outline {
     background: transparent;
-    border: 1px solid #d2d2d7;
-    color: #1d1d1f;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
   }
 
   .btn-outline:hover {
-    background: #f5f5f7;
+    background: var(--hover-bg);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
     padding: 8px 12px;
     margin: 12px 24px 0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 13px;
+    border: 1px solid rgba(255, 59, 48, 0.2);
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -346,29 +352,32 @@
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .persona-card {
     padding: 12px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     margin-bottom: 8px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.15s;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .persona-card:hover {
-    background: #f5f5f7;
+    border-color: var(--border-color);
   }
 
   .persona-card.active {
-    background: #e8f0fe;
-    border-color: #0071e3;
+    background: rgba(0, 113, 227, 0.1);
+    border-color: var(--accent);
   }
 
   .persona-card.selected {
-    background: #f5f5f7;
+    border-color: var(--border-color);
   }
 
   .persona-name {
@@ -382,10 +391,10 @@
 
   .active-badge {
     font-size: 10px;
-    background: #34c759;
+    background: var(--success);
     color: white;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
   }
 
@@ -397,10 +406,10 @@
 
   .tag {
     font-size: 10px;
-    background: #e8e8ed;
+    background: var(--bg-tertiary);
     padding: 2px 6px;
-    border-radius: 4px;
-    color: #6e6e73;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
   }
 
   .editor-panel {
@@ -422,10 +431,13 @@
   }
 
   .model-config {
-    background: #f5f5f7;
-    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 16px;
     margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .model-config h4 {
@@ -437,22 +449,47 @@
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .slider {
     width: 100%;
     margin-bottom: 8px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bg-tertiary);
+    outline: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
@@ -465,21 +502,32 @@
   .textarea {
     width: 100%;
     padding: 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     font-size: 13px;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-family: var(--font-mono);
     box-sizing: border-box;
     resize: vertical;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .preview {
-    background: white;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
     padding: 12px;
     font-size: 13px;
     line-height: 1.5;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .no-selection {
@@ -487,7 +535,7 @@
     align-items: center;
     justify-content: center;
     height: 200px;
-    color: #86868b;
+    color: var(--text-tertiary);
   }
 
   .dialog-overlay {
@@ -500,21 +548,38 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .dialog-close-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: none;
+    background: transparent;
+    cursor: default;
   }
 
   .dialog {
-    background: white;
-    border-radius: 16px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
     padding: 24px;
-    width: 400px;
-    max-height: 80vh;
-    overflow-y: auto;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border-color);
   }
 
   .dialog h3 {
     margin: 0 0 16px 0;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
   }
 

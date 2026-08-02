@@ -158,7 +158,7 @@
         bind:this={inputEl}
         bind:value={inputText}
         on:keydown={handleKeydown}
-        placeholder="Type a message..."
+        placeholder="Message Remy…"
         disabled={$isStreaming}
         rows="1"
         aria-label="Message input"
@@ -180,7 +180,7 @@
           title="Send (Cmd+Enter)"
           aria-label="Send message"
         >
-          →
+          ↑
         </button>
       {/if}
     </div>
@@ -198,7 +198,7 @@
   .message-list {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
@@ -207,8 +207,20 @@
   .streaming {
     display: flex;
     gap: 8px;
-    max-width: 80%;
+    max-width: 75%;
     align-self: flex-start;
+    animation: messageIn 0.2s ease-out;
+  }
+
+  @keyframes messageIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .streaming .avatar {
@@ -220,20 +232,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .streaming .bubble {
-    padding: 8px 12px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-lg);
     font-size: 14px;
     line-height: 1.5;
     background: var(--card-bg);
     color: var(--text-primary);
-    border-bottom-left-radius: 4px;
+    border: 1px solid var(--border-light);
+    border-bottom-left-radius: var(--radius-sm);
     word-wrap: break-word;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .cursor {
@@ -252,12 +269,14 @@
     align-self: center;
     padding: 6px 16px;
     border: 1px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     background: var(--bg-primary);
     font-size: 12px;
     cursor: pointer;
     color: var(--accent);
-    box-shadow: 0 1px 4px var(--shadow);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .jump-btn:hover {
@@ -266,8 +285,10 @@
 
   .input-area {
     border-top: 1px solid var(--border-light);
-    padding: 12px 16px;
+    padding: 12px 20px;
     background: var(--bg-primary);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   .input-row {
@@ -278,25 +299,28 @@
 
   textarea {
     flex: 1;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     font-size: 14px;
     font-family: inherit;
     resize: none;
     outline: none;
     line-height: 1.4;
-    min-height: 36px;
+    min-height: 40px;
     background: var(--input-bg);
     color: var(--text-primary);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   textarea:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   textarea:disabled {
-    background: var(--bg-secondary);
+    opacity: 0.6;
   }
 
   textarea::placeholder {
@@ -305,39 +329,45 @@
 
   .send-btn,
   .stop-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border: none;
-    border-radius: 8px;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: all 0.15s ease;
   }
 
   .send-btn {
     background: var(--accent);
     color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
   .send-btn:disabled {
     background: var(--bg-tertiary);
     color: var(--text-tertiary);
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   .send-btn:hover:not(:disabled) {
     background: var(--accent-hover);
+    transform: scale(1.05);
   }
 
   .stop-btn {
     background: var(--danger);
     color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
   .stop-btn:hover {
     background: var(--danger-hover);
+    transform: scale(1.05);
   }
 </style>

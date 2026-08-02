@@ -154,7 +154,7 @@
   {/if}
 
   {#if loading}
-    <div class="loading">Loading tasks...</div>
+    <div class="loading">Loading tasks…</div>
   {:else}
     <div class="sections">
       <section class="task-section">
@@ -224,51 +224,57 @@
   }
 
   .btn-primary {
-    background: #0071e3;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    transition: all 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: #0077ed;
+    background: var(--accent-hover);
   }
 
   .btn-small {
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
     font-size: 12px;
+    transition: all 0.15s ease;
   }
 
   .btn-danger {
-    background: #ff3b30;
+    background: var(--danger);
     color: white;
   }
 
   .btn-danger:hover {
-    background: #d32f2f;
+    background: var(--danger-hover);
   }
 
   .error-banner {
-    background: #fff0f0;
-    color: #c41e3a;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 12px;
     font-size: 13px;
+    border: 1px solid rgba(255, 59, 48, 0.2);
   }
 
   .new-task-form {
-    background: #f5f5f7;
-    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 16px;
     margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .new-task-form h3 {
@@ -279,11 +285,20 @@
   .input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     font-size: 13px;
     box-sizing: border-box;
     margin-bottom: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   }
 
   .form-row {
@@ -294,19 +309,19 @@
   .form-row label {
     flex: 1;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   label {
     display: block;
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
     margin-bottom: 4px;
   }
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-tertiary);
     padding: 40px;
   }
 
@@ -320,11 +335,10 @@
     margin: 0 0 12px 0;
     font-size: 15px;
     font-weight: 600;
-    color: #1d1d1f;
   }
 
   .empty {
-    color: #86868b;
+    color: var(--text-tertiary);
     font-size: 13px;
     padding: 12px 0;
   }
@@ -333,14 +347,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    background: #f5f5f7;
-    border-radius: 10px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     margin-bottom: 8px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.15s ease;
+  }
+
+  .task-card:hover {
+    border-color: var(--border-color);
   }
 
   .task-card.fired {
-    opacity: 0.7;
+    opacity: 0.6;
   }
 
   .task-info {
@@ -356,7 +378,7 @@
 
   .task-time {
     font-size: 12px;
-    color: #6e6e73;
+    color: var(--text-secondary);
   }
 
   .task-actions {
