@@ -9,7 +9,7 @@ function getRuntime() {
 
 export async function sendMessage(text) {
   if (isWails) {
-    return window.go.main.App.SendMessage(text)
+    return window.go.app.App.SendMessage(text)
   }
   return {
     id: 'mock',
@@ -22,42 +22,42 @@ export async function sendMessage(text) {
 
 export async function sendMessageStream(text) {
   if (isWails) {
-    return window.go.main.App.SendMessageStream(text)
+    return window.go.app.App.SendMessageStream(text)
   }
   return null
 }
 
 export async function getHistory(limit, offset) {
   if (isWails) {
-    return window.go.main.App.GetHistory(limit, offset)
+    return window.go.app.App.GetHistory(limit, offset)
   }
   return []
 }
 
 export async function getConversations() {
   if (isWails) {
-    return window.go.main.App.GetConversations()
+    return window.go.app.App.GetConversations()
   }
   return [{ id: 'default', name: 'default', last_msg: 'No messages yet', timestamp: Date.now() }]
 }
 
 export async function getPersonas() {
   if (isWails) {
-    return window.go.main.App.GetPersonas()
+    return window.go.app.App.GetPersonas()
   }
   return [{ name: 'default', description: 'Default persona', is_active: true }]
 }
 
 export async function switchPersona(name) {
   if (isWails) {
-    return window.go.main.App.SwitchPersona(name)
+    return window.go.app.App.SwitchPersona(name)
   }
   return null
 }
 
 export async function getActivePersona() {
   if (isWails) {
-    return window.go.main.App.GetActivePersona()
+    return window.go.app.App.GetActivePersona()
   }
   return 'default'
 }
@@ -66,7 +66,7 @@ export async function getActivePersona() {
 
 export async function getFacts(category) {
   if (isWails) {
-    return window.go.main.App.GetFacts(category)
+    return window.go.app.App.GetFacts(category)
   }
   // Mock data for testing
   const mockFacts = [
@@ -106,28 +106,28 @@ export async function getFacts(category) {
 
 export async function getFact(id) {
   if (isWails) {
-    return window.go.main.App.GetFact(id)
+    return window.go.app.App.GetFact(id)
   }
   return null
 }
 
 export async function updateFact(id, fact, category, confidence) {
   if (isWails) {
-    return window.go.main.App.UpdateFact(id, fact, category, confidence)
+    return window.go.app.App.UpdateFact(id, fact, category, confidence)
   }
   return null
 }
 
 export async function deleteFact(id) {
   if (isWails) {
-    return window.go.main.App.DeleteFact(id)
+    return window.go.app.App.DeleteFact(id)
   }
   return null
 }
 
 export async function getEpisodes(limit, offset) {
   if (isWails) {
-    return window.go.main.App.GetEpisodes(limit, offset)
+    return window.go.app.App.GetEpisodes(limit, offset)
   }
   // Mock data for testing
   return [
@@ -163,14 +163,14 @@ export async function getEpisodes(limit, offset) {
 
 export async function getEpisode(id) {
   if (isWails) {
-    return window.go.main.App.GetEpisode(id)
+    return window.go.app.App.GetEpisode(id)
   }
   return null
 }
 
 export async function getEntities() {
   if (isWails) {
-    return window.go.main.App.GetEntities()
+    return window.go.app.App.GetEntities()
   }
   // Mock data for testing
   return [
@@ -207,7 +207,7 @@ export async function getEntities() {
 
 export async function getRelationships() {
   if (isWails) {
-    return window.go.main.App.GetRelationships()
+    return window.go.app.App.GetRelationships()
   }
   // Mock data for testing
   return [
@@ -240,21 +240,21 @@ export async function getRelationships() {
 
 export async function getScratchpad() {
   if (isWails) {
-    return window.go.main.App.GetScratchpad()
+    return window.go.app.App.GetScratchpad()
   }
   return 'This is a mock scratchpad. The agent uses this space for working memory.'
 }
 
 export async function updateScratchpad(content) {
   if (isWails) {
-    return window.go.main.App.UpdateScratchpad(content)
+    return window.go.app.App.UpdateScratchpad(content)
   }
   return null
 }
 
 export async function searchMemory(query, searchType) {
   if (isWails) {
-    return window.go.main.App.SearchMemory(query, searchType)
+    return window.go.app.App.SearchMemory(query, searchType)
   }
   // Mock results
   return {
@@ -288,7 +288,7 @@ export function onStreamError(callback) {
 
 export async function getTasks(status) {
   if (isWails) {
-    return window.go.main.App.GetTasks(status)
+    return window.go.app.App.GetTasks(status)
   }
   // Mock data for testing
   const now = Date.now()
@@ -342,7 +342,7 @@ export async function getTasks(status) {
 
 export async function createTask(taskType, triggerAt, cronExpr, action, context) {
   if (isWails) {
-    return window.go.main.App.CreateTask(taskType, triggerAt, cronExpr, action, context)
+    return window.go.app.App.CreateTask(taskType, triggerAt, cronExpr, action, context)
   }
   return {
     id: 'new-task-' + Date.now(),
@@ -359,14 +359,14 @@ export async function createTask(taskType, triggerAt, cronExpr, action, context)
 
 export async function cancelTask(id) {
   if (isWails) {
-    return window.go.main.App.CancelTask(id)
+    return window.go.app.App.CancelTask(id)
   }
   return null
 }
 
 export async function getActivityLog(filter, limit, offset) {
   if (isWails) {
-    return window.go.main.App.GetActivityLog(filter, limit, offset)
+    return window.go.app.App.GetActivityLog(filter, limit, offset)
   }
   // Mock data for testing
   const now = Date.now()
@@ -416,7 +416,7 @@ export async function getActivityLog(filter, limit, offset) {
 
 export async function getConfig() {
   if (isWails) {
-    return window.go.main.App.GetConfig()
+    return window.go.app.App.GetConfig()
   }
   return {
     providers: {
@@ -450,7 +450,7 @@ export async function getConfig() {
 
 export async function updateConfig(config) {
   if (isWails) {
-    return window.go.main.App.UpdateConfig(config)
+    return window.go.app.App.UpdateConfig(config)
   }
   return null
 }
