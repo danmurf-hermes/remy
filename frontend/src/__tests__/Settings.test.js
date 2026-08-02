@@ -37,7 +37,7 @@ describe('Settings', () => {
 
   it('shows save button', () => {
     render(Settings)
-    expect(screen.getByText('Save')).toBeTruthy()
+    expect(screen.getByText('Save Changes')).toBeTruthy()
   })
 
   it('renders without crashing', () => {
