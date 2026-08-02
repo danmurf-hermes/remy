@@ -907,6 +907,8 @@ func TestAgent_HandleMessageStream(t *testing.T) {
 	})
 	embedder.EXPECT().GenerateEmbedding(gomock.Any(), "Hello world!").Return(make([]float32, 768), nil)
 	store.EXPECT().SaveMessageVector(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	// Post-response consolidation
+	store.EXPECT().GetMessages(gomock.Any(), 10, 0).Return(nil, nil)
 
 	a := agent.NewAgent(store, provider, embedder, personaLoader, scheduler, &cfg)
 	ch, err := a.HandleMessageStream(context.Background(), "hello")
