@@ -51,7 +51,6 @@
       isStreaming.set(false)
     })
 
-    // Listen for escape to blur the input
     window.addEventListener('escape-pressed', () => {
       if (inputEl) {
         inputEl.blur()
@@ -124,6 +123,13 @@
 </script>
 
 <div class="chat" role="region" aria-label="Chat conversation">
+  <div class="chat-header">
+    <div class="chat-header-info">
+      <h2 class="chat-title">Chat</h2>
+      <span class="chat-subtitle">Online</span>
+    </div>
+  </div>
+
   <div
     class="message-list"
     bind:this={messageList}
@@ -147,7 +153,7 @@
 
     {#if showJumpToBottom}
       <button class="jump-btn" on:click={scrollToBottom} aria-label="Scroll to bottom of messages">
-        ↓ Jump to bottom
+        ↓
       </button>
     {/if}
   </div>
@@ -180,7 +186,10 @@
           title="Send (Cmd+Enter)"
           aria-label="Send message"
         >
-          ↑
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
         </button>
       {/if}
     </div>
@@ -195,10 +204,38 @@
     flex: 1;
   }
 
+  .chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-primary);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    flex-shrink: 0;
+  }
+
+  .chat-header-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .chat-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .chat-subtitle {
+    font-size: 11px;
+    color: var(--success);
+    font-weight: 500;
+  }
+
   .message-list {
     flex: 1;
     overflow-y: auto;
-    padding: 20px 24px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     scroll-behavior: smooth;
@@ -206,49 +243,50 @@
 
   .streaming {
     display: flex;
-    gap: 8px;
-    max-width: 75%;
+    gap: 10px;
+    max-width: 78%;
     align-self: flex-start;
-    animation: messageIn 0.2s ease-out;
+    animation: messageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes messageIn {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(8px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
   .streaming .avatar {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), #5856d6);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 113, 227, 0.2);
+    margin-top: 4px;
   }
 
   .streaming .bubble {
-    padding: 10px 14px;
-    border-radius: var(--radius-lg);
+    padding: 10px 16px;
+    border-radius: 18px;
     font-size: 14px;
     line-height: 1.5;
     background: var(--card-bg);
     color: var(--text-primary);
     border: 1px solid var(--border-light);
-    border-bottom-left-radius: var(--radius-sm);
+    border-bottom-left-radius: 4px;
     word-wrap: break-word;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
@@ -258,37 +296,41 @@
   }
 
   @keyframes blink {
-    50% {
-      opacity: 0;
-    }
+    50% { opacity: 0; }
   }
 
   .jump-btn {
     position: sticky;
     bottom: 8px;
     align-self: center;
-    padding: 6px 16px;
+    width: 36px;
+    height: 36px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
+    border-radius: 50%;
     background: var(--bg-primary);
-    font-size: 12px;
+    font-size: 16px;
     cursor: pointer;
     color: var(--accent);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
   }
 
   .jump-btn:hover {
     background: var(--hover-bg);
+    transform: translateY(-2px);
   }
 
   .input-area {
     border-top: 1px solid var(--border-light);
-    padding: 12px 20px;
+    padding: 12px 20px 16px;
     background: var(--bg-primary);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
   }
 
   .input-row {
@@ -299,24 +341,26 @@
 
   textarea {
     flex: 1;
-    padding: 10px 14px;
+    padding: 10px 16px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: 20px;
     font-size: 14px;
     font-family: inherit;
     resize: none;
     outline: none;
     line-height: 1.4;
     min-height: 40px;
+    max-height: 120px;
     background: var(--input-bg);
     color: var(--text-primary);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s;
   }
 
   textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
   }
 
   textarea:disabled {
@@ -334,18 +378,17 @@
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .send-btn {
     background: var(--accent);
     color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
   }
 
   .send-btn:disabled {
@@ -357,17 +400,17 @@
 
   .send-btn:hover:not(:disabled) {
     background: var(--accent-hover);
-    transform: scale(1.05);
+    transform: scale(1.08);
   }
 
   .stop-btn {
     background: var(--danger);
     color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
   }
 
   .stop-btn:hover {
     background: var(--danger-hover);
-    transform: scale(1.05);
+    transform: scale(1.08);
   }
 </style>

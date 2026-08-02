@@ -44,20 +44,20 @@
 <style>
   .message {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    max-width: 75%;
-    animation: messageIn 0.2s ease-out;
+    gap: 10px;
+    margin-bottom: 6px;
+    max-width: 78%;
+    animation: messageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes messageIn {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(8px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -71,54 +71,58 @@
   }
 
   .avatar {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), #5856d6);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 113, 227, 0.2);
+    margin-top: 4px;
   }
 
   .bubble {
-    padding: 10px 14px;
-    border-radius: var(--radius-lg);
+    padding: 10px 16px;
+    border-radius: 18px;
     font-size: 14px;
     line-height: 1.5;
     word-wrap: break-word;
-    box-shadow: var(--shadow-sm);
+    position: relative;
   }
 
   .user-bubble {
     background: var(--accent);
     color: white;
-    border-bottom-right-radius: var(--radius-sm);
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 113, 227, 0.2);
   }
 
   .agent-bubble {
     background: var(--card-bg);
     color: var(--text-primary);
     border: 1px solid var(--border-light);
-    border-bottom-left-radius: var(--radius-sm);
+    border-bottom-left-radius: 4px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   .content {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .meta {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
-    opacity: 0.7;
+    font-size: 10px;
+    opacity: 0.6;
+    margin-top: 2px;
   }
 
   .user .meta {
@@ -126,6 +130,6 @@
   }
 
   .interface {
-    font-size: 12px;
+    font-size: 11px;
   }
 </style>
