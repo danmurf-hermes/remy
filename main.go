@@ -165,6 +165,12 @@ func runApp(daemonMode bool) {
 		dbPath = filepath.Join(home, dbPath[1:])
 	}
 
+	// Ensure the database directory exists
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
+		slog.Error("Error creating database directory", "error", err, "dir", filepath.Dir(dbPath))
+		os.Exit(1)
+	}
+
 	store, err := memory.NewStore(dbPath)
 	if err != nil {
 		slog.Error("Error opening database", "error", err, "db_path", dbPath)
