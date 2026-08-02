@@ -161,9 +161,11 @@
                   <span class="detail-value">{entry.message_id}</span>
                 </div>
               {/if}
-              <div class="detail-json">
-                <pre>{formatDetails(entry.details)}</pre>
-              </div>
+              {#if entry.details && entry.details !== '{}'}
+                <div class="detail-json">
+                  <pre>{formatDetails(entry.details)}</pre>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
