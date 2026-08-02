@@ -91,8 +91,12 @@
 
   function getProviderStatus(name) {
     const p = providers[name]
-    if (!p) return 'disconnected'
-    if (p.endpoint) return 'connected'
+    if (!p) {
+      return 'disconnected'
+    }
+    if (p.endpoint) {
+      return 'connected'
+    }
     return 'disconnected'
   }
 
