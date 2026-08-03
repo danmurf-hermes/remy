@@ -1,4 +1,4 @@
-.PHONY: build dev run setup test lint lint-go lint-frontend fmt clean pre-commit release release-dry-run
+.PHONY: build dev run setup test lint lint-go lint-frontend fmt clean pre-commit ci ci-check release release-dry-run
 
 BINARY_NAME=remy
 BUILD_DIR=build
@@ -43,6 +43,39 @@ fmt:
 
 pre-commit: fmt lint test
 
+# Mirrors .github/workflows/ci.yml exactly (ci job, in order):
+# frontend deps -> frontend build -> Go lint -> Go test -> frontend lint -> frontend format check -> frontend test -> Go build
+# Run this BEFORE every push. Do not push until it passes.
+ci: frontend-deps frontend-build lint-go go-test lint-frontend frontend-test go-build
+
+ci-check:
+	@echo "=== CI pipeline (mirrors .github/workflows/ci.yml) ==="
+	@echo "1. Frontend dependencies (npm ci)"
+	@echo "2. Frontend build (npm run build)"
+	@echo "3. Go lint (golangci-lint)"
+	@echo "4. Go test (go test ./internal/... -cover)"
+	@echo "5. Frontend lint (ESLint)"
+	@echo "6. Frontend format check (Prettier)"
+	@echo "7. Frontend test (Vitest)"
+	@echo "8. Go build"
+	@echo "Run 'make ci' to execute the full pipeline."
+
+go-test:
+	go test ./internal/... -cover -coverprofile=coverage.out
+
+go-build:
+	@mkdir -p $(BUILD_DIR)
+	go build -ldflags="-X main.Version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) .
+
+frontend-test:
+	cd frontend && npm test
+
+frontend-deps:
+	cd frontend && npm ci
+
+frontend-build:
+	cd frontend && npm run build
+
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf frontend/node_modules
@@ -70,9 +103,3 @@ release-dry-run:
 	@echo "Version: $(VERSION)"
 	@echo "LDFLAGS: $(LDFLAGS)"
 	@echo "Run 'make release' to actually build."
-
-frontend-deps:
-	cd frontend && npm ci
-
-frontend-build:
-	cd frontend && npm run build

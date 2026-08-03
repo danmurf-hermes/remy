@@ -13,8 +13,13 @@
 | Frontend lint | `cd frontend && npx eslint --ext .js,.svelte src/` |
 | Format check | `cd frontend && npx prettier --check src/` |
 | Format all | `gofmt -s -w . && cd frontend && npx prettier --write src/` |
+| Full CI pipeline (mirrors GitHub Actions) | `make ci` |
 | Pre-commit (fmt→lint→test) | `make pre-commit` |
 | Regenerate mocks | `go generate ./internal/agent/ ./internal/llm/` |
+
+## Mandatory: run the full CI pipeline before every push
+
+**No matter how small the change, you MUST run `make ci` before pushing.** This mirrors `.github/workflows/ci.yml` exactly (frontend deps → frontend build → Go lint → Go test → frontend lint → frontend format check → frontend test → Go build). Never push a commit or open/update a PR until `make ci` passes locally. If any step fails, fix it before pushing — do not rely on CI to catch it.
 
 ## Architecture
 
